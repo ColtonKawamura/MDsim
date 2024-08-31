@@ -1,6 +1,8 @@
 
 # Granular Material Analysis (GranMA)
 
+In an effort to learn more about particle simulations, I've taken notes go through [this](https://m3g.github.io/2021_FortranCon/) and taken notes. I have modified them to fit my specific needs for molecular dynamics.
+
 ## Creating Position Vector Structures
 
 We're only dealing with with vectors that are either 2D or 3D for position. So, we can save significant computational overhead by using `FieldVector`'s in to define the spatial component of particles.
@@ -211,4 +213,6 @@ To call this function,
 forces!(force_list, particle_list, ForceHooke)
 ```
 Later, we can create new force functions and simply use those as our `ForceLaw` argument. Just make sure it outputs the same type as `VecType`!
+
+## Adding Periodic Boundaries
 
