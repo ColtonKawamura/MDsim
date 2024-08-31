@@ -214,5 +214,33 @@ forces!(force_list, particle_list, ForceHooke)
 ```
 Later, we can create new force functions and simply use those as our `ForceLaw` argument. Just make sure it outputs the same type as `VecType`!
 
+## Plotting
+I'm just using the simple plotting package `using Plots` to see our trajectories.
+```julia
+
+function plot_trajectory(trajectory)
+    # Use the first set of positions to determine the limits
+    initial_positions, initial_diameters = trajectory[1]
+    xlims = (minimum([pos.x for pos in initial_positions]), maximum([pos.x for pos in initial_positions]))
+    ylims = (minimum([pos.y for pos in initial_positions]), maximum([pos.y for pos in initial_positions]))
+
+    # This scale factor aligns the ms with the data units.
+    marker_size_scale = 22  # Adjust this if the sizes don't match visually as expected.
+
+    @gif for i in 1:length(trajectory)
+        positions, diameters = trajectory[i]
+        x = [pos.x for pos in positions]
+        y = [pos.y for pos in positions]
+        
+        # ms is the marker size in points, we calculate it based on data units
+        scatter(x, y, ms=diameters .* marker_size_scale, legend=false, xlims=xlims, ylims=ylims, markershape=:circle)
+        annotate!([(xlims[1], ylims[1], text("step: $i", :bottom))])
+    end every 1
+end
+```
+
 ## Adding Periodic Boundaries
 
+As you can see, our particles will all eventually find their own free paths and just continue to go in those directions. Let's set up a boundary condition that allows for more collisions.
+
+We could do hard boundaries, but first let's do periodic boundaries where they go out on one side and come back in on the other side.
