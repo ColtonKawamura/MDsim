@@ -16,9 +16,9 @@ struct Pos2D{T} <: FieldVector{2,T}
 end
 ```
 
-We define a specific structure for our position vectors called `Pos2D` that is parameterized be a type `T`.  The type T could be anything, like Float64, Int, etc. The struct will contain two fields, x and y, which will both have the type T. The `<:` symbol indicates that Vec2D is a subtype of `FieldVector{2,T}`, which is an abstract type from `StaticArrays.jl`. We do this so that our `Pos2D` inherits  all the functionalities of a FieldVector, such as element access, iteration, and mathematical operations.
+We define a specific structure for our position vectors called `Pos2D` that is parameterized be a type `T`.  The type T could be anything, like Float64, Int, etc. The struct will contain two fields, `x` and `y`, which will both have the type `T`. The `<:` symbol indicates that `Vec2D` is a subtype of `FieldVector{2,T}`, which is an abstract type from `StaticArrays.jl`. We do this so that our `Pos2D` inherits  all the functionalities of a FieldVector, such as element access, iteration, and mathematical operations.
 
-In practice, we simply feed the structure `Pos2D` a type `T` and an `x` and `y` that are type `T` vector is defined.
+In practice, we simply feed the structure `Pos2D` a type `T` and an `x` and `y` that are type `T` and a vector is defined.
 
 ```julia
 julia> Pos2D{Float64}(1,2)
@@ -29,7 +29,7 @@ julia> Pos2D{Float64}(1,2)
  
 ## Creating Random Particles
 
-Next, for the sake of making examples, let's create a functions that creates random vectors using the `Vec2D` structure.
+Next, for the sake of making examples, let's create a function that creates random vectors using the `Vec2D` structure.
 
 ```julia
 function PosRandom(::Type{VecType}, range) where VecType 
@@ -40,7 +40,13 @@ end
 ```
 
 
-The arguments for our function `PosRandom` are the structure we want the output vector `VecType` to be, and the range of the points in that vector. `VecType` introduces a type  `VecType` that can be used throughout the function to refer to the specific type passed as the first argument. This allows us to use different vector types later on, for example 3D. ***Important:*** `VecType` will be coming up alot in this tutorial, so remember it represents our choice of the `Pos2D{T}` structure.
+The arguments for our function `PosRandom` are:
+* `::Type{VecType}` - the structure we want the output vector `VecType` to be
+* `range`- the range of the points in that vector. 
+
+`where VecType` introduces a type  `VecType` that can be used throughout the function to refer to the specific type passed as the first argument (`::Type{VecType}`). This allows us to use different vector types later on, for example 3D. 
+
+***Important:*** `VecType` will be coming up alot in this tutorial, so remember it represents our choice of the `Pos2D{T}` structure.
 
 Here's an example of creating a random vector with this function.
 
@@ -50,6 +56,8 @@ julia> PosRandom(Pos2D{Float64}, [0,1])
  0.28591930991040737
  0.7042845413535875
 ```
+We passed `Pos2D{Float64}` as the type of strucutre we want the output to be and `[0,1]`is the range of the random value for each element of `Pos2D{Float64}`.
+
 
 Now that we have a position for the particle, we'll want to keep track of other information of the particle as well, such as the diameter. We can do this by creating a `stuct` that encompases all that informaiton.
 
@@ -158,11 +166,11 @@ function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}) where VecTyp
     return force_i
 end
 ```
-Which gives you the force on particle $i$ due to it's interaction with particle $j$.　`ForceHooke` has the same type logic as `EnergyHooke` and outputs forces in the dimensions of `VecType`.
+Which gives you the force on particle $$i$$ due to it's interaction with particle $j$.　`ForceHooke` has the same type logic as `EnergyHooke` and outputs forces in the dimensions of `VecType`.
 
 ## Calculating Forces for All Particles in Simulation
 
-Let's general a number of particles and create a function that will calculate the forces between them all. 
+Let's generate a number of particles and create a function that will calculate the forces between them all. 
 
 ### Creating Multiple Random Particles.
 
@@ -182,7 +190,7 @@ julia> particle_list[2].position
 ```
 and do the same same for diameter.
 
-### Designing the Total Force Function
+## Designing the Total Force Function
 
 Now we have our list, let's create a function that will go through each non-repeating pair of particles in `particle_list` and calculate the forces in each direction. We know the inputs of the function should be `particle_list` and some function `ForceLaw` that we choose as the force interaction between the particles. We should also have an output list of forces `force_list` which should have the same dimensions as `VecType`. We can do that with 
 
@@ -192,6 +200,7 @@ force_list = similar(map( p -> p.position, particle_list))
 Here, `map( element -> element.position, particle_list)` transforms `particle_list` by applying the anomalous function `element -> element.position` elementwise. `similar` creates an uninitialized version of it's argument. `force_list` will be have a type `Vector{VecType}` with the same length as `particle_list` and each element contains a vector of type `VecType`. For this example, it'll be a vector of position vectors.
 
 Ok, now that we have our inputs and our output, let's create a function that goes initializes `force_list`, and calculates the $x$ and $y$ force components for each particle pair, and finally adds those components to `force_list`
+
 ```julia
 function forces!(force_list::Vector{VecType}, particle_list::Vector{Particle{VecType}}, ForceLaw::F) where {VecType, F}
     fill!(force_list, zero(VecType)) 
@@ -213,6 +222,17 @@ To call this function,
 forces!(force_list, particle_list, ForceHooke)
 ```
 Later, we can create new force functions and simply use those as our `ForceLaw` argument. Just make sure it outputs the same type as `VecType`!
+
+## Simulation Algorithm
+
+Now it's time to get to the actual simulation. We use a Velocity Verlet integration algorithm where positions of particles are updated. Here's the flow:
+
+1. Given the inital positions and velocities of each particle, calculate the intital forces $$F_0$$ on them.
+
+2. Using those initial forces, calculate the initial accelerations $$a_0$$ on each particle using $$F_0 = ma_0$$.
+
+3. With $$a_0$$,
+
 
 ## Plotting
 I'm just using the simple plotting package `using Plots` to see our trajectories.

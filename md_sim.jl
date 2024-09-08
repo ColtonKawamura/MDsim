@@ -108,7 +108,6 @@ end
 
 
 function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, ForceLaw) where {VecType}
-    # Initial conditions
     p = getfield.(particle_list, :position)  # extract just the positions as initial positions
     v = copy(VelInitial)
     a = similar(p)
@@ -117,26 +116,20 @@ function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{
     trajectory = [(map(p -> copy(p.position), particle_list), map(p -> p.diameter, particle_list))] 
  
     for step in 1:nsteps
-        # Compute forces
         forces!(f, particle_list, ForceHooke)
         
-        # Compute acceleration
         a .= f ./ mass
 
-        # Update positions
         p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
 
         # Compute new forces at updated positions
         setfield!.(particle_list, :position, p)
         forces!(f, particle_list, ForceHooke)
 
-        # Compute new acceleration
         a_new = f ./ mass
 
-        # Update velocities
         v .= v .+ 0.5 .* (a .+ a_new) .* dt
 
-        # Save trajectory if required
         if mod(step, save_interval) == 0
             println("Saved trajectory at step: ", step)
             push!(trajectory, (map(p -> copy(p.position), particle_list), map(p -> p.diameter, particle_list)))
@@ -148,12 +141,10 @@ end
 
 
 function plot_trajectory(trajectory)
-    # Use the first set of positions to determine the limits
     initial_positions, initial_diameters = trajectory[1]
     xlims = (minimum([pos.x for pos in initial_positions]), maximum([pos.x for pos in initial_positions]))
     ylims = (minimum([pos.y for pos in initial_positions]), maximum([pos.y for pos in initial_positions]))
 
-    # This scale factor aligns the ms with the data units.
     marker_size_scale = 22  # Adjust this if the sizes don't match visually as expected.
 
     @gif for i in 1:length(trajectory)
@@ -161,8 +152,17 @@ function plot_trajectory(trajectory)
         x = [pos.x for pos in positions]
         y = [pos.y for pos in positions]
         
-        # ms is the marker size in points, we calculate it based on data units
         scatter(x, y, ms=diameters .* marker_size_scale, legend=false, xlims=xlims, ylims=ylims, markershape=:circle)
         annotate!([(xlims[1], ylims[1], text("step: $i", :bottom))])
     end every 1
+end
+
+function periodic(x,side)
+    x = rem(x,side)
+    if x >= side/2
+        x -= side
+    elseif x < -side/2
+        x += side
+    end
+    return x
 end
