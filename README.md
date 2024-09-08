@@ -231,7 +231,11 @@ Now it's time to get to the actual simulation. We use a Velocity Verlet integrat
 
 2. Using those initial forces, calculate the initial accelerations $$a_0$$ on each particle using $$F_0 = ma_0$$.
 
-3. With $$a_0$$,
+3. Calculate what the position $$p$$ of each particle will be after $$dt$$ time has passed *assuming no interactions happen in* $$dt$$ using
+
+$$
+p = 
+$$
 
 
 ## Plotting
