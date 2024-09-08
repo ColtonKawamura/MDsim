@@ -260,24 +260,22 @@ function VelocitiesInit(particle_list::Vector{Particle{VecType}}, temperature::R
     dims = length(fieldnames(VecType))
     N = length(particle_list) 
     initial_velocities = sqrt(temperature / mass) .* rand(N, dims)
-    initial_velocities .-= mean(initial_velocities, dims=1) # ensure all total velocities are zero
+    initial_velocities .-= mean(initial_velocities, dims=1) # ensure total of all velocities are zero
 
     if dims == 2
         VelInitial = map(i -> VecType(initial_velocities[i, 1], initial_velocities[i, 2]), 1:N)
     elseif dims == 3
         VelInitial =  map(i -> VecType(initial_velocities[i, 1], initial_velocities[i, 2], initial_velocities[i, 3]), 1:N)
-    else
-        error("Unsupported dimensionality: $dims. Only 2D and 3D are supported.")
     end
     return VelInitial
 end
 ```
 With arguments:
-* `particle_list::Vector{Particle{VecType}}` - Our vector of particles and their information.
-* `temperature::Real` - A `Real` value for temperature
-* `mass::Real` - A `Real` values for mass of each particle.
+* `particle_list` - Our vector of particles and their information.
+* `temperature` - A `Real` value for temperature
+* `mass` - A `Real` value for mass of each particle.
 
-
+The out put is an initial velocity vector `VelInitial`, which is our final ingredient for our simulation function.
 
 
 ### Simulation Function
