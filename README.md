@@ -253,7 +253,7 @@ We almost have all the ingredients for this algorithim. We just need to create a
 
 ### Initial Velocities
 
-We initialize the velocities based them on the equipartition theorem and ensure that the net velocity of the system is zero.
+We initialize the velocities based the on the initial temperature of the system. From the temperature, we can use the equipartition theorem to get velocities and ensure that the net velocity of the system is zero.
 
 ```julia
 function VelocitiesInit(particle_list::Vector{Particle{VecType}}, temperature::Real, mass::Real) where VecType
@@ -272,6 +272,12 @@ function VelocitiesInit(particle_list::Vector{Particle{VecType}}, temperature::R
     return VelInitial
 end
 ```
+With arguments:
+* `particle_list::Vector{Particle{VecType}}` - Our vector of particles and their information.
+* `temperature::Real` - A `Real` value for temperature
+* `mass::Real` - A `Real` values for mass of each particle.
+
+
 
 
 ### Simulation Function
@@ -336,6 +342,7 @@ function plot_trajectory(trajectory)
     end every 1
 end
 ```
+
 
 ## Adding Periodic Boundaries
 
