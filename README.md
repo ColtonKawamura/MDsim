@@ -223,25 +223,75 @@ forces!(force_list, particle_list, ForceHooke)
 ```
 Later, we can create new force functions and simply use those as our `ForceLaw` argument. Just make sure it outputs the same type as `VecType`!
 
-## Simulation Algorithm
+## Creating the Simulation
+
+### Verlet Algorithm
 
 Now it's time to get to the actual simulation. We use a Velocity Verlet integration algorithm where positions of particles are updated. Here's the flow:
 
 1. Given the inital positions $$p(t)$$ and velocities $$v(t)$$ of each particle, calculate the intital forces $$F(t)$$ on them.
 
-2. Using those initial forces, calculate the initial accelerations $$a(t)$$ on each particle using $$F(t) = m \, a(t)$$.
+2. Using those initial forces, calculate the initial accelerations $$a(t)$$ on each particle using $$F(t) = m  a(t)$$.
 
-3. Calculate what the position of each particle will be after $$dt$$ has passed $$p(t+dt)$$ *assuming no interactions happen in* $$dt$$ using
+3. Calculate what the position of each particle will be after $$dt$$ has passed $$p(t+dt)$$ *assuming no changes in velocities happen in* $$dt$$ using
 
 $$
-p(t+dt) = p(t)+v(t) \, dt + \frac{1}{2}a(t) \, dt^2.
+p(t+dt) = p(t)+v(t)  dt + \frac{1}{2}a(t)  dt^2.
 $$
 
 4. From this new position, caculate new forces with $$F=ma$$ and new velocities with
 
 $$
-v(t+dt) = v(t) + a(t) \, dt
+v(t+dt) = v(t) + a(t)  dt
 $$
+
+5. Using these new positions, velocities, and forces, we start this process all over again.
+
+As you may have noticed, there's a big assumption happening in step $$3$$: that no interactions happen in $$dt$$. This of course is not the case, as particles are constantly interacting. But if we choose $$dt$$ to be small enough, it'll be a good approximation. In short, the smaller we make $$dt$$ the more accurate our simulation will be, but that comes at the cost of computational memory. So we always need to balance the two.
+
+We almost have all the ingredients for this algorithim. We just need to create a way get initial velocities.
+
+### Initial Velocities
+
+
+
+### Simulation Function
+This is implemented in the function below.
+
+```julia
+function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, ForceLaw) where {VecType}
+    p = getfield.(particle_list, :position)  # extract just the positions as initial positions
+    v = copy(VelInitial)
+    a = similar(p)
+    f = similar(p)
+
+    trajectory = [(map(p -> copy(p.position), particle_list), map(p -> p.diameter, particle_list))] 
+ 
+    for step in 1:nsteps
+        forces!(f, particle_list, ForceHooke)
+        
+        a .= f ./ mass
+        p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
+
+        setfield!.(particle_list, :position, p) # update positions
+        forces!(f, particle_list, ForceHooke) # update forces
+
+        a_new = f ./ mass
+        v .= v .+ 0.5 .* (a .+ a_new) .* dt
+
+        if mod(step, save_interval) == 0
+            println("Saved trajectory at step: ", step)
+            push!(trajectory, (map(p -> copy(p.position), particle_list), map(p -> p.diameter, particle_list)))
+        end
+    end
+
+    return trajectory
+end
+```
+The arguments are
+* `particle_list::Vector{Particle{VecType}}` - The list of particles and all their information we created earlier.
+* `VelInitial::Vector{VecType}` - Initial velocities of our 
+
 
 ## Plotting
 I'm just using the simple plotting package `using Plots` to see our trajectories.
