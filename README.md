@@ -275,11 +275,11 @@ With arguments:
 * `temperature` - A `Real` value for temperature
 * `mass` - A `Real` value for mass of each particle.
 
-The out put is an initial velocity vector `VelInitial`, which is our final ingredient for our simulation function.
+The output is an initial velocity vector `VelInitial`, which is our final ingredient for our simulation function.
 
 
 ### Simulation Function
-This is implemented in the function below.
+With the initial velocities calculated, we can proceed with creating the actual simulation function:
 
 ```julia
 function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, ForceLaw) where {VecType}
