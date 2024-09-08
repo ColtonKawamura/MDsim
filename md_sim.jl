@@ -122,9 +122,8 @@ function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{
 
         p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
 
-        # Compute new forces at updated positions
-        setfield!.(particle_list, :position, p)
-        forces!(f, particle_list, ForceHooke)
+        setfield!.(particle_list, :position, p) # update positions
+        forces!(f, particle_list, ForceHooke) # update forces
 
         a_new = f ./ mass
 

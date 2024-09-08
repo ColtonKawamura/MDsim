@@ -227,16 +227,21 @@ Later, we can create new force functions and simply use those as our `ForceLaw` 
 
 Now it's time to get to the actual simulation. We use a Velocity Verlet integration algorithm where positions of particles are updated. Here's the flow:
 
-1. Given the inital positions and velocities of each particle, calculate the intital forces $$F_0$$ on them.
+1. Given the inital positions $$p(t)$$ and velocities $$v(t)$$ of each particle, calculate the intital forces $$F(t)$$ on them.
 
-2. Using those initial forces, calculate the initial accelerations $$a_0$$ on each particle using $$F_0 = ma_0$$.
+2. Using those initial forces, calculate the initial accelerations $$a(t)$$ on each particle using $$F(t) = m \, a(t)$$.
 
-3. Calculate what the position $$p$$ of each particle will be after $$dt$$ time has passed *assuming no interactions happen in* $$dt$$ using
+3. Calculate what the position of each particle will be after $$dt$$ has passed $$p(t+dt)$$ *assuming no interactions happen in* $$dt$$ using
 
 $$
-p = 
+p(t+dt) = p(t)+v(t) \, dt + \frac{1}{2}a(t) \, dt^2.
 $$
 
+4. From this new position, caculate new forces with $$F=ma$$ and new velocities with
+
+$$
+v(t+dt) = v(t) + a(t) \, dt
+$$
 
 ## Plotting
 I'm just using the simple plotting package `using Plots` to see our trajectories.
