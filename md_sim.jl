@@ -113,7 +113,7 @@ function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{
     a = similar(p)
     f = similar(p)
 
-    trajectory = [(map(p -> copy(p.position), particle_list), map(p -> p.diameter, particle_list))] 
+    trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
  
     for step in 1:nsteps
         forces!(f, particle_list, ForceHooke)
@@ -129,7 +129,7 @@ function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{
 
         if mod(step, save_interval) == 0
             println("Saved trajectory at step: ", step)
-            push!(trajectory, (map(p -> copy(p.position), particle_list), map(p -> p.diameter, particle_list)))
+            push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
         end
     end
 
@@ -142,7 +142,7 @@ function plot_trajectory(trajectory)
     xlims = (minimum([pos.x for pos in initial_positions]), maximum([pos.x for pos in initial_positions]))
     ylims = (minimum([pos.y for pos in initial_positions]), maximum([pos.y for pos in initial_positions]))
 
-    marker_size_scale = 22  # Adjust this if the sizes don't match visually as expected.
+    marker_size_scale = 7  # Adjust this if the sizes don't match visually as expected.
 
     @gif for i in 1:length(trajectory)
         positions, diameters = trajectory[i]

@@ -277,6 +277,16 @@ With arguments:
 
 The output is an initial velocity vector `VelInitial`, which is our final ingredient for our simulation function.
 
+We can call the function with
+
+```julia
+julia> VelInitial = VelocitiesInit(particle_list, 1, 1)
+100-element Vector{Pos2D{Float64}}:
+ [-0.3029112666395863, 0.37241345104389045]
+ [0.35857248768241207, 0.05929367012637865]
+ [-0.009747462276397612, 0.3283920976472833]
+ ⋮
+```
 
 ### Simulation Function
 With the initial velocities calculated, we can proceed with creating the actual simulation function:
@@ -288,7 +298,7 @@ function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{
     a = similar(p)
     f = similar(p)
 
-    trajectory = [(map(p -> copy(p.position), particle_list), map(p -> p.diameter, particle_list))] 
+    trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
  
     for step in 1:nsteps
         forces!(f, particle_list, ForceHooke)
@@ -304,7 +314,7 @@ function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{
 
         if mod(step, save_interval) == 0
             println("Saved trajectory at step: ", step)
-            push!(trajectory, (map(p -> copy(p.position), particle_list), map(p -> p.diameter, particle_list)))
+            push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
         end
     end
 
@@ -313,11 +323,26 @@ end
 ```
 The arguments are
 * `particle_list::Vector{Particle{VecType}}` - The list of particles and all their information we created earlier.
-* `VelInitial::Vector{VecType}` - Initial velocities of our 
+* `VelInitial::Vector{VecType}` - Initial velocities of our particles.
+* `mass` - The mass of our particles, this can be changed to be part of `particle_list` in the future for particles with different masses.
+* `dt` - This size of $$dt$$. Remember, the smaller `dt` is, the more accurate the simulation, but more computational cost.
+* `nsteps` - How many `dt`'s we want are simulation to run for.
+* `save_interval` - How many `nsteps` go by before saving the trajectory. Again, the smaller the `save_interval`, the more computational cost.
+* `forces!` - Our force function.
+* `ForceLaw` - The force law we want to model. For this example, we're only using Hooke's Law.
 
+That output `trajectory` is a vector with two elements: a tuple for each particle containing a vector of positions, and a vector of diameters for each particle. This is all the information we need to plot the trajectory of each particle across time.
+
+How to actually run the simulation we simply call the function with all our arguments.
+
+```julia
+trajectory = md_verlet(particle_list, VelInitial,1, .1, 1000, 10, forces!, ForceHooke)
+```
 
 ## Plotting
 I'm just using the simple plotting package `using Plots` to see our trajectories.
+
+We can create a simple function to see our trajectory across time by ploting each particle's `x` and `y` position and `diameter` for each time step on separete plots. Then we can use the `@gif` macro to stitch them together.
 ```julia
 
 function plot_trajectory(trajectory)
@@ -326,8 +351,7 @@ function plot_trajectory(trajectory)
     xlims = (minimum([pos.x for pos in initial_positions]), maximum([pos.x for pos in initial_positions]))
     ylims = (minimum([pos.y for pos in initial_positions]), maximum([pos.y for pos in initial_positions]))
 
-    # This scale factor aligns the ms with the data units.
-    marker_size_scale = 22  # Adjust this if the sizes don't match visually as expected.
+    marker_size_scale = 1  # Adjust this if the sizes don't match visually as expected.
 
     @gif for i in 1:length(trajectory)
         positions, diameters = trajectory[i]
