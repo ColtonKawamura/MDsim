@@ -23,9 +23,12 @@ end
 const k = 100
 
 function main()
-    particle_list = [ ParticleRandom(Pos2D{Float64}, [0,10], [.2,1]) for i in 1:100]
-    VelInitial = VelocitiesInit(particle_list, 1 ,1)
-    trajectory = md_verlet(particle_list, VelInitial, mass, .05, 100, 1, forces!, ForceHooke)
+    mass = 1
+    particle_list = [ ParticleRandom(Pos2D{Float64}, [0,9], [.2,1]) for i in 1:100]
+    VelInitial = VelocitiesInit(particle_list, .5 ,1)
+    # trajectory = md_verlet(particle_list, VelInitial, mass, .05, 100, 1, forces!, ForceHooke)
+    trajectory = md_verlet(particle_list, VelInitial, 1, 0.01, 1000, 10, 
+           (force_list, particle_list) -> forces!(force_list, particle_list, (p_i, p_j) -> ForceHooke(p_i, p_j)), side)
     plot_trajectory(trajectory)
 end
 
@@ -68,6 +71,7 @@ function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}) where VecTyp
     return force_i
 end
 
+particle_list = [ ParticleRandom(Pos2D{Float64}, [0,10], [.2,1]) for i in 1:100]
 force_list = similar(map( p -> p.position, particle_list))
 # position_list = map( p -> p.position, particle_list)
 
@@ -106,7 +110,6 @@ function VelocitiesInit(particle_list::Vector{Particle{VecType}}, temperature::R
     return VelInitial
 end
 
-
 function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, ForceLaw) where {VecType}
     p = getfield.(particle_list, :position)  # extract just the positions as initial positions
     v = copy(VelInitial)
@@ -116,13 +119,13 @@ function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{
     trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
  
     for step in 1:nsteps
-        forces!(f, particle_list, ForceHooke)
+        forces!(f, particle_list, ForceLaw)
         
         a .= f ./ mass
         p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
 
         setfield!.(particle_list, :position, p) # update positions
-        forces!(f, particle_list, ForceHooke) # update forces
+        forces!(f, particle_list, ForceLaw) # update forces
 
         a_new = f ./ mass
         v .= v .+ 0.5 .* (a .+ a_new) .* dt
@@ -139,27 +142,149 @@ end
 
 function plot_trajectory(trajectory)
     initial_positions, initial_diameters = trajectory[1]
-    xlims = (minimum([pos.x for pos in initial_positions]), maximum([pos.x for pos in initial_positions]))
-    ylims = (minimum([pos.y for pos in initial_positions]), maximum([pos.y for pos in initial_positions]))
-
-    marker_size_scale = 7  # Adjust this if the sizes don't match visually as expected.
+    xlims = (-5, 15) 
+    ylims = (-5, 15)
 
     @gif for i in 1:length(trajectory)
         positions, diameters = trajectory[i]
-        x = [pos.x for pos in positions]
-        y = [pos.y for pos in positions]
+        plot(; xlims=xlims, ylims=ylims, legend=false, aspect_ratio=:equal)
+
+        for (pos, diameter) in zip(positions, diameters)
+            circle_shape = Shape([(pos.x + diameter/2 * cos(θ), pos.y + diameter/2 * sin(θ)) for θ in range(0, 2π, length=50)])
+            plot!(circle_shape, lw=0, c=:blue)
+        end
         
-        scatter(x, y, ms=diameters .* marker_size_scale, legend=false, xlims=xlims, ylims=ylims, markershape=:circle)
         annotate!([(xlims[1], ylims[1], text("step: $i", :bottom))])
     end every 1
 end
 
-function periodic(x,side)
-    x = rem(x,side)
-    if x >= side/2
-        x -= side
-    elseif x < -side/2
-        x += side
-    end
-    return x
+# periodic on all sides, square
+function periodic(p::VecType, side::T) where {VecType<:FieldVector, T}
+    return VecType(mod.(p, side))
 end
+
+#  periodic boundary only to the y-component (2nd component)
+function periodic(p::VecType, side::T) where {VecType<:FieldVector, T}
+    return VecType(p[1], mod(p[2], side), p[3:end]...)  # Apply mod only to the 2nd component (y)
+end
+
+# reflect x
+function reflect(p::VecType, v::VecType, side::T) where {VecType<:FieldVector, T}
+    # Reflect the x-component of the position and velocity if the particle hits the boundaries
+    x_reflected = p[1]
+    v_reflected = v[1]
+    
+    if x_reflected < 0
+        x_reflected = -x_reflected  # Reflect at 0 boundary
+        v_reflected = -v_reflected  # Reverse velocity in the x-direction
+    elseif x_reflected > side
+        x_reflected = 2*side - x_reflected  # Reflect at side boundary
+        v_reflected = -v_reflected  # Reverse velocity in the x-direction
+    end
+    
+    # Return the updated position and velocity vectors
+    return VecType(x_reflected, p[2:end]...), VecType(v_reflected, v[2:end]...)
+end
+
+const side = 10
+
+# Regular method ... need to be able to pass the periodic into just the force law?
+function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, side) where {VecType}
+    p = getfield.(particle_list, :position)  # extract just the positions as initial positions
+    v = copy(VelInitial)
+    a = similar(p)
+    f = similar(p)
+
+    trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
+ 
+    for step in 1:nsteps
+        forces!(f, particle_list)
+        
+        a .= f ./ mass
+        p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
+
+        setfield!.(particle_list, :position, p) # update positions
+        forces!(f, particle_list) # update forces
+
+        a_new = f ./ mass
+        v .= v .+ 0.5 .* (a .+ a_new) .* dt
+
+        if mod(step, save_interval) == 0
+            println("Saved trajectory at step: ", step)
+            push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
+        end
+    end
+
+    return trajectory
+end
+
+
+# periodic method
+function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, side) where {VecType}
+    p = getfield.(particle_list, :position)  # extract just the positions as initial positions
+    v = copy(VelInitial)
+    a = similar(p)
+    f = similar(p)
+
+    trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
+ 
+    for step in 1:nsteps
+        forces!(f, particle_list)
+        
+        a .= f ./ mass
+        p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
+
+        p .= periodic.(p, side)
+        setfield!.(particle_list, :position, p) # update positions
+        forces!(f, particle_list) # update forces
+
+        a_new = f ./ mass
+        v .= v .+ 0.5 .* (a .+ a_new) .* dt
+
+        if mod(step, save_interval) == 0
+            println("Saved trajectory at step: ", step)
+            push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
+        end
+    end
+
+    return trajectory
+end
+
+# reflect method
+function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, side) where {VecType}
+    p = getfield.(particle_list, :position)  # extract just the positions as initial positions
+    v = copy(VelInitial)
+    a = similar(p)
+    force_list = similar(p)
+
+    trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
+ 
+    for step in 1:nsteps
+        # Calculate forces on each particle using the provided ForceLaw
+        forces!(force_list, particle_list)
+        
+        # Compute accelerations from forces
+        a .= force_list ./ mass
+        
+        # Update positions using Verlet integration
+        p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
+
+        # Apply reflection in accordance with boundary conditions
+        p, v = reflect.(p, v, side)
+        
+        # Update the positions of the particles
+        setfield!.(particle_list, :position, p)
+        
+        # Update velocities using Verlet integration
+        v .= v .+ 0.5 .* a .* dt
+
+        # Save the trajectory at specified intervals
+        if mod(step, save_interval) == 0
+            println("Saved trajectory at step: ", step)
+            push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
+        end
+    end
+
+    return trajectory
+end
+

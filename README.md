@@ -166,7 +166,7 @@ function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}) where VecTyp
     return force_i
 end
 ```
-Which gives you the force on particle $$i$$ due to it's interaction with particle $j$.　`ForceHooke` has the same type logic as `EnergyHooke` and outputs forces in the dimensions of `VecType`.
+Which gives you the force on particle $$i$$ due to it's interaction with particle $$j$$.　`ForceHooke` has the same type logic as `EnergyHooke` and outputs forces in the dimensions of `VecType`.
 
 ## Calculating Forces for All Particles in Simulation
 
@@ -192,7 +192,9 @@ and do the same same for diameter.
 
 ## Designing the Total Force Function
 
-Now we have our list, let's create a function that will go through each non-repeating pair of particles in `particle_list` and calculate the forces in each direction. We know the inputs of the function should be `particle_list` and some function `ForceLaw` that we choose as the force interaction between the particles. We should also have an output list of forces `force_list` which should have the same dimensions as `VecType`. We can do that with 
+Now we have our list, let's create a function that will go through each non-repeating pair of particles in `particle_list` and calculate the forces in each direction. 
+
+First, we need to initialize a force vector for peach particle. We'll call it `force_list`. We know the inputs of the function should be `particle_list` and some function `ForceLaw` that we choose as the force interaction between the particles. We should also have an output list of forces `force_list` which should have the same dimensions as `VecType`. We can do that with 
 
 ```julia
 force_list = similar(map( p -> p.position, particle_list))
@@ -214,8 +216,13 @@ function forces!(force_list::Vector{VecType}, particle_list::Vector{Particle{Vec
     end
     return force_list
 end
-
 ```
+
+### Arguments
+* `force_list` - An uninitialized vector of forces for each particle.
+* `particle_list` - Our vector of particles and their positions and other information.
+* `ForceLaw` - the force law we want each particle to be subject to.
+   
 To call this function,
 
 ```julia
@@ -301,13 +308,13 @@ function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{
     trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
  
     for step in 1:nsteps
-        forces!(f, particle_list, ForceHooke)
+        forces!(f, particle_list, ForceLaw)
         
         a .= f ./ mass
         p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
 
         setfield!.(particle_list, :position, p) # update positions
-        forces!(f, particle_list, ForceHooke) # update forces
+        forces!(f, particle_list, ForceLaw) # update forces
 
         a_new = f ./ mass
         v .= v .+ 0.5 .* (a .+ a_new) .* dt
@@ -331,7 +338,7 @@ The arguments are
 * `forces!` - Our force function.
 * `ForceLaw` - The force law we want to model. For this example, we're only using Hooke's Law.
 
-That output `trajectory` is a vector with two elements: a tuple for each particle containing a vector of positions, and a vector of diameters for each particle. This is all the information we need to plot the trajectory of each particle across time.
+That output `trajectory` is a vector with two elements: a tuple for each particle containing a vector of position vectors, and a vector of diameters for each particle. This is all the information we need to plot the trajectory of each particle across time.
 
 How to actually run the simulation we simply call the function with all our arguments.
 
@@ -339,27 +346,41 @@ How to actually run the simulation we simply call the function with all our argu
 trajectory = md_verlet(particle_list, VelInitial,1, .1, 1000, 10, forces!, ForceHooke)
 ```
 
+As an example, to access the position of particle `2` at timestep `3`,
+
+```julia
+julia> trajectory[3][1][2]
+2-element Pos2D{Float64} with indices SOneTo(2):
+ 28.982062652415216
+ 19.19086457351468
+```
+To see the diameter of the same particle at the same timestep (not that they're changing in this example):
+
+```julia
+julia> trajectory[3][2][2]
+1.3924117086889665
+```
+
 ## Plotting
 I'm just using the simple plotting package `using Plots` to see our trajectories.
 
-We can create a simple function to see our trajectory across time by ploting each particle's `x` and `y` position and `diameter` for each time step on separete plots. Then we can use the `@gif` macro to stitch them together.
+We can create a simple function to see our trajectory across time by ploting each particle's `x` and `y` position and `diameter` for each time step on separate plots. Then we can use the `@gif` macro to stitch them together.
+
 ```julia
-
 function plot_trajectory(trajectory)
-    # Use the first set of positions to determine the limits
     initial_positions, initial_diameters = trajectory[1]
-    xlims = (minimum([pos.x for pos in initial_positions]), maximum([pos.x for pos in initial_positions]))
-    ylims = (minimum([pos.y for pos in initial_positions]), maximum([pos.y for pos in initial_positions]))
-
-    marker_size_scale = 1  # Adjust this if the sizes don't match visually as expected.
+    xlims = (-5, 15) 
+    ylims = (-5, 15)
 
     @gif for i in 1:length(trajectory)
         positions, diameters = trajectory[i]
-        x = [pos.x for pos in positions]
-        y = [pos.y for pos in positions]
+        plot(; xlims=xlims, ylims=ylims, legend=false, aspect_ratio=:equal)
+
+        for (pos, diameter) in zip(positions, diameters)
+            circle_shape = Shape([(pos.x + diameter/2 * cos(θ), pos.y + diameter/2 * sin(θ)) for θ in range(0, 2π, length=50)])
+            plot!(circle_shape, lw=0, c=:blue)
+        end
         
-        # ms is the marker size in points, we calculate it based on data units
-        scatter(x, y, ms=diameters .* marker_size_scale, legend=false, xlims=xlims, ylims=ylims, markershape=:circle)
         annotate!([(xlims[1], ylims[1], text("step: $i", :bottom))])
     end every 1
 end
@@ -370,4 +391,105 @@ end
 
 As you can see, our particles will all eventually find their own free paths and just continue to go in those directions. Let's set up a boundary condition that allows for more collisions.
 
-We could do hard boundaries, but first let's do periodic boundaries where they go out on one side and come back in on the other side.
+We could do hard boundaries, but first let's do periodic boundaries where they go out on one side and come back in on the other side:
+
+```julia
+function periodic(p::VecType, side::T) where {VecType<:FieldVector, T}
+    return VecType(mod.(p, side))
+end
+```
+#### Arguments:
+* `p` - The position of a particle along a given axis (e.g., `x`, `y`, or `z`), which may exceed the size of the box.
+* `side` - The length of the simulation box along the given axis. For example, if the box has a width of 10 units along the x-axis, `side` would be 10.
+
+We can create another method for our `md_verlet` function by defining,
+
+```julia
+function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, side) where {VecType}
+    p = getfield.(particle_list, :position)  # extract just the positions as initial positions
+    v = copy(VelInitial)
+    a = similar(p)
+    force_list = similar(p)
+
+    trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
+ 
+    for step in 1:nsteps
+        forces!(force_list, particle_list)
+        
+        a .= force_list ./ mass
+        p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
+
+        p .= periodic.(p, side)
+
+        setfield!.(particle_list, :position, p) # update positions
+        # forces!(force_list, particle_list) # update forces
+
+        # a_new = force_list ./ mass
+        v .= v .+ 0.5 .* a .* dt
+
+        if mod(step, save_interval) == 0
+            println("Saved trajectory at step: ", step)
+            push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
+        end
+    end
+
+    return trajectory
+end
+```
+### New Argument
+* `side` - was added as the last argument. Now, any simulatin that has the `side` argument will perform a simulation with periodic boundaires.
+
+Julia's multiple dispatch with choose the correct method of `md_verlet` based on if we put in the `side` input.
+
+## A Note About Anonymous Function as Argument
+
+But now we have something we need to consider: the inputs of `md_verlet` need to be able to recognize which method of `ForceHook` to use. We can accomplish this by using an anonymous function to pass 
+
+```julia
+forces!(force_list, particle_list, (p_i, p_j) -> ForceHooke(p_i, p_j, side))
+```
+What this does is passes three arguments to `forces!` where the third argument, which inside `forces!` is a function that is fed two input arguments `ForceLaw(particle_list[i], particle_list[j])`, now becomes an anonymous function that takes those two inputs `p_i` and `p_j`, and feeds them to the proper method for `ForceHooke`.
+
+This provides a great deal of flexibilty now, because all we have to do to switch between different methods of different forces laws is update a single function, and that is passed appropiiatley through all other functions. For example, if we want to switch back to our non-periodic `ForceHooke` method, we simply pass:
+
+```julia
+forces!(force_list, particle_list, (p_i, p_j) -> ForceHooke(p_i, p_j))
+```
+
+This also has the added benefit of decreasing the amount of arguments needed for our `md_verlet` function, since the appropriate `ForceLaw` can be passed with our `forces!` argument.
+
+Notice the difference between this new `md_verlet` function and the old. specifically the lines
+```julia
+forces!(f,particle_list, ForceLaw)
+```
+changed to
+
+```julia
+forces!(f, particle_list)
+```
+
+We can drop the last argument, because if we call 
+
+```julia
+md_verlet(...,forces! = (force_list,particle_list) -> forces!(force_list, particle_list, (p_i, p_j) -> ForceHooke(p_i, p_j)), ...)
+```
+
+then inside  `md_verlet`, the function `forces!(force_list, particle_list)` feeds the inputs `force_list` and `particle_list` to 
+
+```julia
+forces!(force_list, particle_list, (p_i, p_j) -> ForceHooke(p_i, p_j))
+```
+
+## Back to the Simiulation
+
+Let's see this in action with a periodic boundary of 
+
+```julia
+const side = 10
+```
+
+and,
+
+```julia
+trajectory = md_verlet(particle_list, VelInitial, 1, 0.01, 1000, 10, (force_list, particle_list) -> forces!(force_list, particle_list, (p_i, p_j) -> ForceHooke(p_i, p_j)), side)
+```
