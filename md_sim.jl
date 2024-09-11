@@ -27,7 +27,7 @@ function main()
     particle_list = [ ParticleRandom(Pos2D{Float64}, [0,9], [.2,1]) for i in 1:100]
     VelInitial = VelocitiesInit(particle_list, .5 ,1)
     # trajectory = md_verlet(particle_list, VelInitial, mass, .05, 100, 1, forces!, ForceHooke)
-    trajectory = md_verlet(particle_list, VelInitial, 1, 0.01, 1000, 10, 
+    trajectory = md_verlet(particle_list, VelInitial, 1, 0.001, 1000, 10, 
            (force_list, particle_list) -> forces!(force_list, particle_list, (p_i, p_j) -> ForceHooke(p_i, p_j)), side)
     plot_trajectory(trajectory)
 end
@@ -110,6 +110,7 @@ function VelocitiesInit(particle_list::Vector{Particle{VecType}}, temperature::R
     return VelInitial
 end
 
+# method 1 without boundaries 
 function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, ForceLaw) where {VecType}
     p = getfield.(particle_list, :position)  # extract just the positions as initial positions
     v = copy(VelInitial)
@@ -142,8 +143,8 @@ end
 
 function plot_trajectory(trajectory)
     initial_positions, initial_diameters = trajectory[1]
-    xlims = (-5, 15) 
-    ylims = (-5, 15)
+    xlims = (-1, 11) 
+    ylims = (-1, 11)
 
     @gif for i in 1:length(trajectory)
         positions, diameters = trajectory[i]
@@ -163,7 +164,7 @@ function periodic(p::VecType, side::T) where {VecType<:FieldVector, T}
     return VecType(mod.(p, side))
 end
 
-#  periodic boundary only to the y-component (2nd component)
+#  method 2 with just y boundary...need to add way to flag
 function periodic(p::VecType, side::T) where {VecType<:FieldVector, T}
     return VecType(p[1], mod(p[2], side), p[3:end]...)  # Apply mod only to the 2nd component (y)
 end
