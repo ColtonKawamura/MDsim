@@ -1,6 +1,6 @@
 #  periodic
 
-function md_verlet(flow_particles::Vector{Particle{VecType}}, 
+function md_verlet_Acoustic(flow_particles::Vector{Particle{VecType}}, 
     left_wall_particles::Vector{Particle{VecType}}, 
     right_wall_particles::Vector{Particle{VecType}}, 
     VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, ForceLaw, side) where {VecType}

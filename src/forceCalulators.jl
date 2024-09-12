@@ -3,7 +3,7 @@
 export
     forces!
 
-    function forces!(force_list::Vector{VecType}, particle_list::Vector{Particle{VecType}}, ForceLaw::F) where {VecType, F}
+function forces!(force_list::Vector{VecType}, particle_list::Vector{Particle{VecType}}, ForceLaw::F) where {VecType, F}
     fill!(force_list, zero(VecType)) 
     n = length(particle_list)
     for i in 1:n-1

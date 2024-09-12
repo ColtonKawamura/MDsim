@@ -3,22 +3,23 @@ using LinearAlgebra: norm
 using Distributions
 using Statistics
 using Plots
+using MAT
 
-struct Pos2D{T} <: FieldVector{2,T}
-    x::T
-    y::T
-end
+# struct Pos2D{T} <: FieldVector{2,T}
+#     x::T
+#     y::T
+# end
  
-struct Pos3D{T} <: FieldVector{3,T}
-    x::T
-    y::T
-    z::T
-end
+# struct Pos3D{T} <: FieldVector{3,T}
+#     x::T
+#     y::T
+#     z::T
+# end
 
-mutable struct Particle{VecType}
-    position::VecType
-    diameter::Float64
-end
+# mutable struct Particle{VecType}
+#     position::VecType
+#     diameter::Float64
+# end
 
 const k = 100
 
@@ -33,159 +34,187 @@ function main()
 end
 
 # Function to generate a random position within a given range
-function PosRandom(::Type{VecType}, range) where VecType 
-    T = eltype(VecType)
-    dimensions = length(VecType)
-    return VecType(range[1] + rand(T)*(range[2]-range[1]) for _ in 1:dimensions)
-end
+# function PosRandom(::Type{VecType}, range) where VecType 
+#     T = eltype(VecType)
+#     dimensions = length(VecType)
+#     return VecType(range[1] + rand(T)*(range[2]-range[1]) for _ in 1:dimensions)
+# end
 
-# Function to generate a random particle with random position and diameter
-function ParticleRandom(::Type{VecType}, PosRange, DiamRange) where VecType 
-    position = PosRandom(VecType, PosRange)
-    diameter = DiamRange[1] + rand()*(DiamRange[2] - DiamRange[1])
-    return Particle(position, diameter)
-end
+# # Function to generate a random particle with random position and diameter
+# function ParticleRandom(::Type{VecType}, PosRange, DiamRange) where VecType 
+#     position = PosRandom(VecType, PosRange)
+#     diameter = DiamRange[1] + rand()*(DiamRange[2] - DiamRange[1])
+#     return Particle(position, diameter)
+# end
 
-function EnergyHooke(p_i::Particle{VecType}, p_j::Particle{VecType}) where VecType
-    r_vector = p_j.position - p_i.position
-    r = norm(r_vector)
-    cutoff = .5 .* (p_i.diameter + p_i.diameter)
-    if r > cutoff
-        PotEnergy  = zero(T)
-    else
-        PotEnergy = .5 * k * (cutoff - r)^2 * (r_vector / r)
-    end
-    return PotEnergy
-end
+# # Function to generate evenly spaced positions along a line at x_fixed
+# function PosLine(::Type{VecType}, x_fixed::Float64, y_range::Vector{Float64}, num_particles::Int) where VecType
+#     # Generate evenly spaced y positions within the y_range
+#     y_positions = range(y_range[1], y_range[2], length=num_particles)
+    
+#     # Create a list of positions with fixed x and evenly spaced y
+#     positions = [VecType(x_fixed, y) for y in y_positions]
+    
+#     return positions
+# end
+
+# # Function to create particles with evenly spaced positions along the line at x_fixed
+# function MakeParticlesAlongLine(::Type{VecType}, x_fixed::Float64, y_range::Vector{Float64}, DiamRange::Vector{Float64}, num_particles::Int) where VecType
+#     # Get evenly spaced positions along the line
+#     positions = PosLine(VecType, x_fixed, y_range, num_particles)
+    
+#     # Create particles with these positions and random diameters
+#     particles = [Particle(position, DiamRange[1] + rand() * (DiamRange[2] - DiamRange[1])) for position in positions]
+    
+#     return particles
+# end
+
+# function MakeParticle(::Type{VecType}, PosRange, DiamRange) where VecType 
+#     position = PosRandom(VecType, PosRange)
+#     diameter = DiamRange[1] + rand()*(DiamRange[2] - DiamRange[1])
+#     return Particle(position, diameter)
+# end
+
+# function EnergyHooke(p_i::Particle{VecType}, p_j::Particle{VecType}) where VecType
+#     r_vector = p_j.position - p_i.position
+#     r = norm(r_vector)
+#     cutoff = .5 .* (p_i.diameter + p_i.diameter)
+#     if r > cutoff
+#         PotEnergy  = zero(T)
+#     else
+#         PotEnergy = .5 * k * (cutoff - r)^2 * (r_vector / r)
+#     end
+#     return PotEnergy
+# end
 
 
-function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}) where VecType
-    r_vector = p_j.position - p_i.position
-    r = norm(r_vector)
-    cutoff = 0.5 * (p_i.diameter + p_j.diameter)
-    if r > cutoff
-        force_i = zero(VecType)  # Ensure we're returning a vector zero
-    else
-        force_i = -k * (cutoff - r) * (r_vector / r)
-    end
-    return force_i
-end
+# function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}) where VecType
+#     r_vector = p_j.position - p_i.position
+#     r = norm(r_vector)
+#     cutoff = 0.5 * (p_i.diameter + p_j.diameter)
+#     if r > cutoff
+#         force_i = zero(VecType)  # Ensure we're returning a vector zero
+#     else
+#         force_i = -k * (cutoff - r) * (r_vector / r)
+#     end
+#     return force_i
+# end
 
 particle_list = [ ParticleRandom(Pos2D{Float64}, [0,10], [.2,1]) for i in 1:100]
 force_list = similar(map( p -> p.position, particle_list))
 # position_list = map( p -> p.position, particle_list)
 
-function forces!(force_list::Vector{VecType}, particle_list::Vector{Particle{VecType}}, ForceLaw::F) where {VecType, F}
-    fill!(force_list, zero(VecType)) 
-    n = length(particle_list)
-    for i in 1:n-1
-        for j in i+1:n
-            force_i = ForceLaw(particle_list[i], particle_list[j])
-            force_list[i] += force_i
-            force_list[j] -= force_i
-        end
-    end
-    return force_list
-end
+# function forces!(force_list::Vector{VecType}, particle_list::Vector{Particle{VecType}}, ForceLaw::F) where {VecType, F}
+#     fill!(force_list, zero(VecType)) 
+#     n = length(particle_list)
+#     for i in 1:n-1
+#         for j in i+1:n
+#             force_i = ForceLaw(particle_list[i], particle_list[j])
+#             force_list[i] += force_i
+#             force_list[j] -= force_i
+#         end
+#     end
+#     return force_list
+# end
 
-function VelocitiesInit(particle_list::Vector{Particle{VecType}}, temperature::Real, mass::Real) where VecType
-    # Determine the number of dimensions based on the first particle's position
-    dims = length(fieldnames(VecType))
-    N = length(particle_list)  # Number of particles
+# function VelocitiesInit(particle_list::Vector{Particle{VecType}}, temperature::Real, mass::Real) where VecType
+#     # Determine the number of dimensions based on the first particle's position
+#     dims = length(fieldnames(VecType))
+#     N = length(particle_list)  # Number of particles
 
-    # Initialize velocities based on equipartition theorem
-    initial_velocities = sqrt(temperature / mass) .* rand(N, dims)
+#     # Initialize velocities based on equipartition theorem
+#     initial_velocities = sqrt(temperature / mass) .* rand(N, dims)
     
-    # Ensure net velocity is zero
-    initial_velocities .-= mean(initial_velocities, dims=1)
+#     # Ensure net velocity is zero
+#     initial_velocities .-= mean(initial_velocities, dims=1)
     
-    # Return the velocities as a vector of position-like objects
-    if dims == 2
-        VelInitial = map(i -> VecType(initial_velocities[i, 1], initial_velocities[i, 2]), 1:N)
-    elseif dims == 3
-        VelInitial =  map(i -> VecType(initial_velocities[i, 1], initial_velocities[i, 2], initial_velocities[i, 3]), 1:N)
-    else
-        error("Unsupported dimensionality: $dims. Only 2D and 3D are supported.")
-    end
-    return VelInitial
-end
+#     # Return the velocities as a vector of position-like objects
+#     if dims == 2
+#         VelInitial = map(i -> VecType(initial_velocities[i, 1], initial_velocities[i, 2]), 1:N)
+#     elseif dims == 3
+#         VelInitial =  map(i -> VecType(initial_velocities[i, 1], initial_velocities[i, 2], initial_velocities[i, 3]), 1:N)
+#     else
+#         error("Unsupported dimensionality: $dims. Only 2D and 3D are supported.")
+#     end
+#     return VelInitial
+# end
 
 # method 1 without boundaries 
-function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, ForceLaw) where {VecType}
-    p = getfield.(particle_list, :position)  # extract just the positions as initial positions
-    v = copy(VelInitial)
-    a = similar(p)
-    f = similar(p)
+# function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, ForceLaw) where {VecType}
+#     p = getfield.(particle_list, :position)  # extract just the positions as initial positions
+#     v = copy(VelInitial)
+#     a = similar(p)
+#     f = similar(p)
 
-    trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
+#     trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
  
-    for step in 1:nsteps
-        forces!(f, particle_list, ForceLaw)
+#     for step in 1:nsteps
+#         forces!(f, particle_list, ForceLaw)
         
-        a .= f ./ mass
-        p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
+#         a .= f ./ mass
+#         p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
 
-        setfield!.(particle_list, :position, p) # update positions
-        forces!(f, particle_list, ForceLaw) # update forces
+#         setfield!.(particle_list, :position, p) # update positions
+#         forces!(f, particle_list, ForceLaw) # update forces
 
-        a_new = f ./ mass
-        v .= v .+ 0.5 .* (a .+ a_new) .* dt
+#         a_new = f ./ mass
+#         v .= v .+ 0.5 .* (a .+ a_new) .* dt
 
-        if mod(step, save_interval) == 0
-            println("Saved trajectory at step: ", step)
-            push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
-        end
-    end
+#         if mod(step, save_interval) == 0
+#             println("Saved trajectory at step: ", step)
+#             push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
+#         end
+#     end
 
-    return trajectory
-end
+#     return trajectory
+# end
 
 
-function plot_trajectory(trajectory)
-    initial_positions, initial_diameters = trajectory[1]
-    xlims = (-1, 11) 
-    ylims = (-1, 11)
+# function plot_trajectory(trajectory)
+#     initial_positions, initial_diameters = trajectory[1]
+#     xlims = (-5, 1050) 
+#     ylims = (-2, 7)
 
-    @gif for i in 1:length(trajectory)
-        positions, diameters = trajectory[i]
-        plot(; xlims=xlims, ylims=ylims, legend=false, aspect_ratio=:equal)
+#     @gif for i in 1:length(trajectory)
+#         positions, diameters = trajectory[i]
+#         plot(; xlims=xlims, ylims=ylims, legend=false, aspect_ratio=:equal)
 
-        for (pos, diameter) in zip(positions, diameters)
-            circle_shape = Shape([(pos.x + diameter/2 * cos(θ), pos.y + diameter/2 * sin(θ)) for θ in range(0, 2π, length=50)])
-            plot!(circle_shape, lw=0, c=:blue)
-        end
+#         for (pos, diameter) in zip(positions, diameters)
+#             circle_shape = Shape([(pos.x + diameter/2 * cos(θ), pos.y + diameter/2 * sin(θ)) for θ in range(0, 2π, length=50)])
+#             plot!(circle_shape, lw=2, c=:blue, fillalpha=0)
+#         end
         
-        annotate!([(xlims[1], ylims[1], text("step: $i", :bottom))])
-    end every 1
-end
+#         annotate!([(xlims[1], ylims[1], text("step: $i", :bottom))])
+#     end every 1
+# end
 
-# periodic on all sides, square
-function periodic(p::VecType, side::T) where {VecType<:FieldVector, T}
-    return VecType(mod.(p, side))
-end
+# # periodic on all sides, square
+# function periodic(p::VecType, side::T) where {VecType<:FieldVector, T}
+#     return VecType(mod.(p, side))
+# end
 
-#  method 2 with just y boundary...need to add way to flag
-function periodic(p::VecType, side::T) where {VecType<:FieldVector, T}
-    return VecType(p[1], mod(p[2], side), p[3:end]...)  # Apply mod only to the 2nd component (y)
-end
+# #  method 2 with just y boundary...need to add way to flag
+# function periodic(p::VecType, side::T) where {VecType<:FieldVector, T}
+#     return VecType(p[1], mod(p[2], side), p[3:end]...)  # Apply mod only to the 2nd component (y)
+# end
 
-# reflect x
-function reflect(p::VecType, v::VecType, side::T) where {VecType<:FieldVector, T}
-    # Reflect the x-component of the position and velocity if the particle hits the boundaries
-    x_reflected = p[1]
-    v_reflected = v[1]
+# # reflect x
+# function reflect(p::VecType, v::VecType, side::T) where {VecType<:FieldVector, T}
+#     # Reflect the x-component of the position and velocity if the particle hits the boundaries
+#     x_reflected = p[1]
+#     v_reflected = v[1]
     
-    if x_reflected < 0
-        x_reflected = -x_reflected  # Reflect at 0 boundary
-        v_reflected = -v_reflected  # Reverse velocity in the x-direction
-    elseif x_reflected > side
-        x_reflected = 2*side - x_reflected  # Reflect at side boundary
-        v_reflected = -v_reflected  # Reverse velocity in the x-direction
-    end
+#     if x_reflected < 0
+#         x_reflected = -x_reflected  # Reflect at 0 boundary
+#         v_reflected = -v_reflected  # Reverse velocity in the x-direction
+#     elseif x_reflected > side
+#         x_reflected = 2*side - x_reflected  # Reflect at side boundary
+#         v_reflected = -v_reflected  # Reverse velocity in the x-direction
+#     end
     
-    # Return the updated position and velocity vectors
-    return VecType(x_reflected, p[2:end]...), VecType(v_reflected, v[2:end]...)
-end
+#     # Return the updated position and velocity vectors
+#     return VecType(x_reflected, p[2:end]...), VecType(v_reflected, v[2:end]...)
+# end
 
 const side = 10
 
@@ -220,36 +249,36 @@ function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{
 end
 
 
-# periodic method
-function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, side) where {VecType}
-    p = getfield.(particle_list, :position)  # extract just the positions as initial positions
-    v = copy(VelInitial)
-    a = similar(p)
-    f = similar(p)
+# # periodic method
+# function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, side) where {VecType}
+#     p = getfield.(particle_list, :position)  # extract just the positions as initial positions
+#     v = copy(VelInitial)
+#     a = similar(p)
+#     f = similar(p)
 
-    trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
+#     trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
  
-    for step in 1:nsteps
-        forces!(f, particle_list)
+#     for step in 1:nsteps
+#         forces!(f, particle_list)
         
-        a .= f ./ mass
-        p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
+#         a .= f ./ mass
+#         p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
 
-        p .= periodic.(p, side)
-        setfield!.(particle_list, :position, p) # update positions
-        forces!(f, particle_list) # update forces
+#         p .= periodic.(p, side)
+#         setfield!.(particle_list, :position, p) # update positions
+#         forces!(f, particle_list) # update forces
 
-        a_new = f ./ mass
-        v .= v .+ 0.5 .* (a .+ a_new) .* dt
+#         a_new = f ./ mass
+#         v .= v .+ 0.5 .* (a .+ a_new) .* dt
 
-        if mod(step, save_interval) == 0
-            println("Saved trajectory at step: ", step)
-            push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
-        end
-    end
+#         if mod(step, save_interval) == 0
+#             println("Saved trajectory at step: ", step)
+#             push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
+#         end
+#     end
 
-    return trajectory
-end
+#     return trajectory
+# end
 
 # reflect method
 function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, side) where {VecType}
@@ -288,4 +317,59 @@ function md_verlet(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{
 
     return trajectory
 end
+
+
+# function convertInput(file_path::String)
+#     # Open the .mat file
+#     mat_data = matread(file_path)
+    
+#     # Extract variables 'x', 'y', and 'Dn'
+#     x = mat_data["x"]
+#     y = mat_data["y"]
+#     Dn = mat_data["Dn"]
+    
+#     # Check if x, y, and Dn have the same length
+#     num_particles = length(x)
+#     if length(y) != num_particles || length(Dn) != num_particles
+#         error("x, y, and Dn must have the same length")
+#     end
+    
+#     # Create a list of Particle{Pos2D} instances
+#     particle_list = [Particle(Pos2D(x[i], y[i]), Dn[i]) for i in 1:num_particles]
+    
+#     return particle_list
+# end
+
+# function convertInputAndSplit(file_path::String)
+#     # Open the .mat file and read the necessary variables
+#     mat_data = matread(file_path)
+    
+#     # Extract variables 'x', 'y', 'Dn', and 'Lx'
+#     x = vec(mat_data["x"])  # Treat 'x' as a 1D array
+#     y = vec(mat_data["y"])  # Treat 'y' as a 1D array
+#     Dn = vec(mat_data["Dn"])  # Treat 'Dn' as a 1D array
+#     Lx = mat_data["Lx"]  # Read 'Lx' from the mat file
+    
+#     # Check if x, y, and Dn have the same length
+#     num_particles = length(x)
+#     if length(y) != num_particles || length(Dn) != num_particles
+#         error("x, y, and Dn must have the same length")
+#     end
+    
+#     # Create a list of Particle{Pos2D} instances
+#     particle_list = [Particle(Pos2D(x[i], y[i]), Dn[i]) for i in 1:num_particles]
+    
+#     # Split particles into left wall, right wall, and flow groups based on x positions
+#     left_wall_list = findall(x .< Dn ./ 2)  # Particles near the left wall
+#     right_wall_list = findall(x .> (Lx .- Dn ./ 2))  # Particles near the right wall
+#     bulk_list = findall(.! (x .< Dn ./ 2 .|| x .> (Lx .- Dn ./ 2)))  # Particles in the bulk
+    
+#     # Use the linear indices to extract particles
+#     particlesLeftWall = particle_list[left_wall_list]
+#     particlesRightWall = particle_list[right_wall_list]
+#     particlesFlow = particle_list[bulk_list]
+    
+#     return particlesLeftWall, particlesRightWall, particlesFlow
+# end
+
 
