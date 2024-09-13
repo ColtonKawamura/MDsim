@@ -3,7 +3,7 @@ export
     ForceHooke
 
 
-function EnergyHooke(p_i::Particle{VecType}, p_j::Particle{VecType}) where VecType
+function EnergyHooke(p_i::Particle{VecType}, p_j::Particle{VecType}, k) where VecType
     r_vector = p_j.position - p_i.position
     r = norm(r_vector)
     cutoff = .5 .* (p_i.diameter + p_i.diameter)
@@ -16,7 +16,7 @@ function EnergyHooke(p_i::Particle{VecType}, p_j::Particle{VecType}) where VecTy
 end
 
 
-function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}) where VecType
+function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}, k) where VecType
     r_vector = p_j.position - p_i.position
     r = norm(r_vector)
     cutoff = 0.5 * (p_i.diameter + p_j.diameter)
