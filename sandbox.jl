@@ -122,6 +122,6 @@ function cellAcoust()
 
     
     VelInitial = VelocitiesInit(particleList, 1, 1)
-    trajectory = md_verletCLosc(particleList, VelInitial, 1, 0.00001, 500, 10, (f_flow, particleList) -> forces_CL!(k, f_flow, particleList, ForceHookeCL, box, cl), side)
+    trajectory = md_verletCLosc(particleList, VelInitial, 1, 0.0000001, 2000, 10, (f_flow, particleList) -> forces_CL!(k, f_flow, particleList, ForceHookeCL, box, cl), side)
     plotTrajectoryAcoustic(trajectory)
 end

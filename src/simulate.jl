@@ -377,22 +377,31 @@ end
 
 # periodic method
 function md_verletCLosc(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, side) where {VecType}
-    p = getfield.(particle_list, :position)  # extract just the positions as initial positions
+    p = getfield.(particle_list, :position) 
+    p0 = p # added to get initial positions, used for the oscilation
     v = copy(VelInitial)
     a = similar(p)
     f = similar(p)
 
+    A = .1 # added to to feed into sin
+    omega = 10 # added to feed into sin
+
     trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
- 
+    
+    leftIndex = [particle.position.x < particle.diameter / 2 for particle in particle_list] # added this to ID leftwall
+    
     for step in 1:nsteps
         forces!(f, particle_list)
-        
+
         a .= f ./ mass
         p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
+        p[leftIndex] .= [Pos2D(p0[i][1] + A * sin(omega * step * dt), p0[i][2]) for i in findall(leftIndex)] # added update positions left wall
 
         p .= periodic.(p, side)
-        setfield!.(particle_list, :position, p) # update positions
-        forces!(f, particle_list) # update forces
+        setfield!.(particle_list, :position, p) 
+        forces!(f, particle_list) 
+
+        f[leftIndex] .= [Pos2D(0.0, 0.0) for _ in findall(leftIndex)] # added to zero out forces on left wall
 
         a_new = f ./ mass
         v .= v .+ 0.5 .* (a .+ a_new) .* dt
