@@ -31,7 +31,7 @@ function periodicY()
     plotTrajectory(trajectory)
 end
 
-# Trying to oscillate wall now
+# Oscillaitng and plotting. Doens't look like left ins interacting with flow
 function cellList()
     mass = 1
     boxX = 1000
@@ -43,10 +43,13 @@ function cellList()
     
     particlesLeftWall, particlesRightWall, particlesFlow = convertSplit("2D_N5000_P0.1_Width5_Seed1.mat")
 
-    cl = CellList([p.position for p in particlesFlow], box)
+    # cl = CellList([p.position for p in particlesFlow], box)
+    # Combine flow and left wall particles in the cell list
+    cl = CellList([p.position for p in vcat(particlesFlow, particlesLeftWall)], box)
+
     
     VelInitial = VelocitiesInit(particlesFlow, 1, 1)
-    trajectory_flow, trajectory_left_wall = md_verlet_AcousticCL_2out(particlesFlow, particlesLeftWall, particlesRightWall, VelInitial, 1, .00001, 2000, 10, (f_flow, all_particles) -> forces_CL!(k, f_flow, all_particles, ForceHookeCL, box, cl), side)
+    trajectory_flow, trajectory_left_wall = md_verlet_AcousticCL_2out(particlesFlow, particlesLeftWall, particlesRightWall, VelInitial, 1, .0001, 2000, 10, (f_flow, all_particles) -> forces_CL!(k, f_flow, all_particles, ForceHookeCL, box, cl), side)
     plotTrajectoryAcoustic(trajectory_flow, trajectory_left_wall)
 end
 

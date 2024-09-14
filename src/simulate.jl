@@ -296,14 +296,13 @@ function md_verletCL(particle_list::Vector{Particle{VecType}}, VelInitial::Vecto
     return trajectory
 end
 
-
 function md_verlet_AcousticCL_2out(flow_particles::Vector{Particle{VecType}}, 
     left_wall_particles::Vector{Particle{VecType}}, 
     right_wall_particles::Vector{Particle{VecType}}, 
     VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, side) where {VecType}
 
-    A = .1
-    omega = 20
+    A = .005
+    omega = 100
     # Combine all particles (flow + wall particles) into a single list for force calculation
     all_particles = vcat(flow_particles, left_wall_particles, right_wall_particles)
 
@@ -313,10 +312,17 @@ function md_verlet_AcousticCL_2out(flow_particles::Vector{Particle{VecType}},
     a_flow = similar(p_flow)
     f_flow = similar(getfield.(all_particles, :position))  # Create a force vector for all particles
 
-
     # Create masks for identifying which particles belong to the walls
     left_wall_list = [false for _ in 1:length(all_particles)]
     right_wall_list = [false for _ in 1:length(all_particles)]
+
+    # Mark wall particles in the masks
+    for i in 1:length(left_wall_particles)
+        left_wall_list[i + length(flow_particles)] = true  # Mark left wall particles
+    end
+    for i in 1:length(right_wall_particles)
+        right_wall_list[i + length(flow_particles) + length(left_wall_particles)] = true  # Mark right wall particles
+    end
 
     # Initialize trajectory storage for the flow and left wall particles
     trajectory_flow = [(map(p -> copy(p.position), flow_particles), map(p -> p.diameter, flow_particles))]
@@ -332,13 +338,13 @@ function md_verlet_AcousticCL_2out(flow_particles::Vector{Particle{VecType}},
             left_wall_particles[i] = Particle(Pos2D(new_x, left_wall_particles[i].position[2]), left_wall_particles[i].diameter)
         end
 
-        # Calculate forces on all particles (including wall particles)
+        # Step 1: Calculate forces on all particles (including wall particles)
         forces!(f_flow, all_particles)
 
-        # Zero out the forces on the left and right wall particles so they don't move
+        # Step 2: After calculating the forces, zero out the forces on the right wall particles
         for i in 1:length(all_particles)
-            if left_wall_list[i] || right_wall_list[i]
-                f_flow[i] = zero(VecType)  # Set force to zero for wall particles
+            if right_wall_list[i]  # Zero out the right wall forces only
+                f_flow[i] = zero(VecType)
             end
         end
 
@@ -352,6 +358,10 @@ function md_verlet_AcousticCL_2out(flow_particles::Vector{Particle{VecType}},
         setfield!.(flow_particles, :position, p_flow)
         p_flow .= periodic.(p_flow, side)
 
+        # Update velocities of flow particles
+        a_flow_new = f_flow[1:length(flow_particles)] ./ mass
+        v_flow .= 0.5 .* (a_flow .+ a_flow_new) .* dt
+
         # Save trajectory at intervals
         if mod(step, save_interval) == 0
             println("Saved trajectory at step: ", step)
@@ -362,3 +372,5 @@ function md_verlet_AcousticCL_2out(flow_particles::Vector{Particle{VecType}},
 
     return trajectory_flow, trajectory_left_wall
 end
+
+
