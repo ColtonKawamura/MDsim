@@ -7,7 +7,7 @@ using Statistics
 using Plots
 using MAT
 
-const k = 100 # need to move this out 
+# const k = 100 # need to move this out 
 
 include("types.jl")
 include("makeParticles.jl")
