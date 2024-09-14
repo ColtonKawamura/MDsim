@@ -42,13 +42,14 @@ function cellList()
     k = 100
     
     particlesLeftWall, particlesRightWall, particlesFlow = convertSplit("2D_N5000_P0.1_Width5_Seed1.mat")
+    all_particles = vcat(particlesFlow, particlesLeftWall, particlesRightWall)
 
     # cl = CellList([p.position for p in particlesFlow], box)
     # Combine flow and left wall particles in the cell list
     cl = CellList([p.position for p in vcat(particlesFlow, particlesLeftWall)], box)
 
     
-    VelInitial = VelocitiesInit(particlesFlow, 1, 1)
+    VelInitial = VelocitiesInit(all_particles, 1, 1)
     trajectory_flow, trajectory_left_wall = md_verlet_AcousticCL_2out(particlesFlow, particlesLeftWall, particlesRightWall, VelInitial, 1, .0001, 2000, 10, (f_flow, all_particles) -> forces_CL!(k, f_flow, all_particles, ForceHookeCL, box, cl), side)
     plotTrajectoryAcoustic(trajectory_flow, trajectory_left_wall)
 end
@@ -82,7 +83,7 @@ function example()
     plotTrajectoryEx(trajectory)
 end
 
-# Working on this now, plot and look at that, is that correct? When fixed, try to incorprated boundaries
+# Workls try to incorprated boundaries
 function periodicYCL()
     mass = 1
     k = 100
@@ -99,4 +100,28 @@ function periodicYCL()
     VelInitial = VelocitiesInit(particle_list, .5 ,1)
     trajectory = md_verletCL(particle_list, VelInitial, 1, 0.0001, 1000, 10, (f_flow, all_particles) -> forces_CL!(k, f_flow, all_particles, ForceHookeCL, box, cl), side)
     plotTrajectory(trajectory)
+end
+
+
+
+# Oscillaitng and plotting. Doens't look like left ins interacting with flow
+function cellAcoust()
+    mass = 1
+    boxX = 1000
+    boxY = 5
+    side = boxY
+    cutoff = 1.4 # max particle diameter
+    box = Box([boxX,boxY],cutoff)
+    k = 100
+    
+    particleList = convertInput("2D_N5000_P0.1_Width5_Seed1.mat")
+
+    # cl = CellList([p.position for p in particlesFlow], box)
+    # Combine flow and left wall particles in the cell list
+    cl = CellList([p.position for p in particleList], box)
+
+    
+    VelInitial = VelocitiesInit(particleList, 1, 1)
+    trajectory = md_verletCLosc(particleList, VelInitial, 1, 0.00001, 500, 10, (f_flow, particleList) -> forces_CL!(k, f_flow, particleList, ForceHookeCL, box, cl), side)
+    plotTrajectoryAcoustic(trajectory)
 end

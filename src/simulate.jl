@@ -4,7 +4,8 @@ export
     md_verlet_AcousticCL,
     md,
     md_verletCL,
-    md_verlet_AcousticCL_2out
+    md_verlet_AcousticCL_2out,
+    md_verletCLosc
 
 
 # method 1 without boundaries 
@@ -307,7 +308,7 @@ function md_verlet_AcousticCL_2out(flow_particles::Vector{Particle{VecType}},
     all_particles = vcat(flow_particles, left_wall_particles, right_wall_particles)
 
     # Extract initial positions and velocities of flow particles
-    p_flow = getfield.(flow_particles, :position)
+    p_flow = getfield.(all_particles, :position)
     v_flow = copy(VelInitial)
     a_flow = similar(p_flow)
     f_flow = similar(getfield.(all_particles, :position))  # Create a force vector for all particles
@@ -349,17 +350,17 @@ function md_verlet_AcousticCL_2out(flow_particles::Vector{Particle{VecType}},
         end
 
         # Update accelerations of flow particles only (no update for wall particles)
-        a_flow .= f_flow[1:length(flow_particles)] ./ mass
+        a_flow .= f_flow[1:length(all_particles)] ./ mass
 
         # Verlet integration: Update positions of flow particles only
         p_flow .= p_flow .+ v_flow .* dt .+ 0.5 .* a_flow .* dt^2
 
         # Set the new positions of the flow particles
-        setfield!.(flow_particles, :position, p_flow)
+        setfield!.(all_particles, :position, p_flow)
         p_flow .= periodic.(p_flow, side)
 
         # Update velocities of flow particles
-        a_flow_new = f_flow[1:length(flow_particles)] ./ mass
+        a_flow_new = f_flow[1:length(all_particles)] ./ mass
         v_flow .= 0.5 .* (a_flow .+ a_flow_new) .* dt
 
         # Save trajectory at intervals
@@ -374,3 +375,33 @@ function md_verlet_AcousticCL_2out(flow_particles::Vector{Particle{VecType}},
 end
 
 
+# periodic method
+function md_verletCLosc(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!, side) where {VecType}
+    p = getfield.(particle_list, :position)  # extract just the positions as initial positions
+    v = copy(VelInitial)
+    a = similar(p)
+    f = similar(p)
+
+    trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
+ 
+    for step in 1:nsteps
+        forces!(f, particle_list)
+        
+        a .= f ./ mass
+        p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
+
+        p .= periodic.(p, side)
+        setfield!.(particle_list, :position, p) # update positions
+        forces!(f, particle_list) # update forces
+
+        a_new = f ./ mass
+        v .= v .+ 0.5 .* (a .+ a_new) .* dt
+
+        if mod(step, save_interval) == 0
+            println("Saved trajectory at step: ", step)
+            push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
+        end
+    end
+
+    return trajectory
+end
