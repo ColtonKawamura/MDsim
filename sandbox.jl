@@ -28,3 +28,18 @@ function acoustics()
     trajectory = md_verlet_Acoustic(particlesFlow, particlesLeftWall, particlesRightWall, VelInitial, 1, .1, 200, 10, forces!, ForceHooke, 5)
     plotTrajectory(trajectory)
 end
+
+function celllist()
+    mass = 1
+    boxX = 1000
+    boxY = 5
+    cutoff = 1.4 # max particle diameter
+    box = Box([boxX,boxY],cutoff)
+
+    particlesLeftWall, particlesRightWall, particlesFlow = convertSplit("2D_N5000_P0.1_Width5_Seed1.mat")
+    cl = CellList(x0_large,box)
+    
+    VelInitial = VelocitiesInit(particlesFlow, 1, 1)
+    trajectory = md_verlet_Acoustic(particlesFlow, particlesLeftWall, particlesRightWall, VelInitial, 1, .1, 200, 10, forces!, ForceHooke, 5)
+    plotTrajectory(trajectory)
+end
