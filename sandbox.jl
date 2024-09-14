@@ -31,21 +31,23 @@ function periodicY()
     plotTrajectory(trajectory)
 end
 
-function celllist()
+# Trying to oscillate wall now
+function cellList()
     mass = 1
     boxX = 1000
     boxY = 5
     side = boxY
     cutoff = 1.4 # max particle diameter
     box = Box([boxX,boxY],cutoff)
+    k = 100
     
     particlesLeftWall, particlesRightWall, particlesFlow = convertSplit("2D_N5000_P0.1_Width5_Seed1.mat")
 
     cl = CellList([p.position for p in particlesFlow], box)
     
     VelInitial = VelocitiesInit(particlesFlow, 1, 1)
-    trajectory = md_verlet_AcousticCL(particlesFlow, particlesLeftWall, particlesRightWall, VelInitial, 1, .1, 200, 10, (f_flow, all_particles) -> forces_CL!(f_flow, all_particles, ForceHookeCL, box, cl), side)
-    plotTrajectory(trajectory)
+    trajectory = md_verlet_AcousticCL(particlesFlow, particlesLeftWall, particlesRightWall, VelInitial, 1, .00001, 4000, 10, (f_flow, all_particles) -> forces_CL!(k, f_flow, all_particles, ForceHookeCL, box, cl), side)
+    plotTrajectoryAcoustic(trajectory)
 end
 
 
@@ -75,4 +77,23 @@ function example()
         forces! = (f,x) -> forces_cl!(f,x,box,cl,fpair_cl)
     )...)
     plotTrajectoryEx(trajectory)
+end
+
+# Working on this now, plot and look at that, is that correct? When fixed, try to incorprated boundaries
+function periodicYCL()
+    mass = 1
+    k = 100
+    side = 5
+    boxX = 10
+    boxY = 5
+    side = boxY
+    cutoff = 1 # max particle diameter
+    box = Box([boxX,boxY],cutoff)
+
+    particle_list = [ ParticleRandom(Pos2D{Float64}, [0,9], [.2,1]) for i in 1:100]
+    cl = CellList([p.position for p in particle_list], box)
+
+    VelInitial = VelocitiesInit(particle_list, .5 ,1)
+    trajectory = md_verletCL(particle_list, VelInitial, 1, 0.0001, 1000, 10, (f_flow, all_particles) -> forces_CL!(k, f_flow, all_particles, ForceHookeCL, box, cl), side)
+    plotTrajectory(trajectory)
 end

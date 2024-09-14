@@ -2,7 +2,8 @@ export
     EnergyHooke,
     ForceHooke,
     fₓ,
-    fpair_cl
+    fpair_cl,
+    ForceHookeCL
 
 
 function EnergyHooke(p_i::Particle{VecType}, p_j::Particle{VecType}, k) where VecType
@@ -30,7 +31,7 @@ function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}, k) where Vec
     return force_i
 end
 
-function ForceHookeCL(p_i::Particle{VecType}, p_j::Particle{VecType}, k, i , j , d2, f, box::Box) # using CellLists
+function ForceHookeCL(p_i::Particle{VecType}, p_j::Particle{VecType}, k, i , j , d2, f, box::Box) where VecType # using CellLists
     r_vector = p_j.position - p_i.position
     r = sqrt(d2)
     force_i = -k * (box.cutoff - r) * (r_vector / r)

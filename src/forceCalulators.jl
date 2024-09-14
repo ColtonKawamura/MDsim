@@ -20,14 +20,14 @@ function forces!(force_list::Vector{VecType}, particle_list::Vector{Particle{Vec
 end
 
 
-function forces_CL!(force_list::Vector{T}, particle_list::Vector{Particle{VecType}}, ForceLaw::F, box::Box, cl::CellList ) where {T,F}
+function forces_CL!(k, force_list::Vector{VecType}, particle_list::Vector{Particle{VecType}}, ForceLaw::F, box::Box, cl::CellList ) where {VecType, F}
     fill!(force_list, zero(VecType))
     cl = UpdateCellList!([p.position for p in particle_list], box, cl, parallel=false)
     map_pairwise!(
-        (p_i, p_j ,i,j, r_vector, f) -> ForceLaw(x,y,i,j,d2,f,box),
-        f, box, cl, parallel=false
+        (p_i, p_j, i , j, d2, force_list) -> ForceLaw(particle_list[i], particle_list[j], k, i, j, d2, force_list, box),
+        force_list, box, cl, parallel=false
     )
-    return f
+    return force_list
 end
 
 # Examples

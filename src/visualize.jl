@@ -1,5 +1,6 @@
 export
-    plotTrajectory
+    plotTrajectory,
+    plotTrajectoryAcoustic
 
 function plotTrajectory(trajectory)
     # Extract initial positions and diameters
@@ -33,13 +34,13 @@ end
     
 
 # Examples
-function plotTrajectory(trajectory)
+function plotTrajectoryAcoustic(trajectory)
     # Extract initial positions and diameters
     initial_positions, initial_diameters = trajectory[1]
     
     # Compute the min and max x and y values from the initial positions
     x_min = minimum(p.x for p in initial_positions)
-    x_max = maximum(p.x for p in initial_positions)
+    x_max = 10
     y_min = minimum(p.y for p in initial_positions)
     y_max = maximum(p.y for p in initial_positions)
     
