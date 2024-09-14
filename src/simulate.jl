@@ -1,6 +1,7 @@
 export
     md_verlet,
-    md_verlet_Acoustic
+    md_verlet_Acoustic,
+    md
 
 
 # method 1 without boundaries 
@@ -134,5 +135,34 @@ function md_verlet_Acoustic(flow_particles::Vector{Particle{VecType}},
         end 
     end
 
+    return trajectory
+end
+
+
+# Examples
+function md(
+    x0::Vector{T},
+    v0::Vector{T},
+    mass,dt,nsteps,isave,forces!) where T
+    x = copy(x0)
+    v = copy(v0)
+    a = similar(x0)
+    f = similar(x0)
+    trajectory = [ copy(x0) ] 
+    for step in 1:nsteps
+        # Compute forces
+        forces!(f,x)
+        # Accelerations
+        @. a = f / mass
+        # Update positions
+        @. x = x + v*dt + a*dt^2/2
+        # Update velocities
+        @. v = v + a*dt
+        # Save if required
+        if mod(step,isave) == 0
+            println("Saved trajectory at step: ",step)
+            push!(trajectory,copy(x))
+        end
+    end
     return trajectory
 end

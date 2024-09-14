@@ -1,6 +1,7 @@
 export
     periodic,
-    reflect
+    reflect,
+    wrap
 
 
 # periodic on all sides, square
@@ -29,4 +30,15 @@ function reflect(p::VecType, v::VecType, side::T) where {VecType<:FieldVector, T
     
     # Return the updated position and velocity vectors
     return VecType(x_reflected, p[2:end]...), VecType(v_reflected, v[2:end]...)
+end
+
+#Examples
+function wrap(x,side)
+    x = rem(x,side)
+    if x >= side/2
+        x -= side
+    elseif x < -side/2
+        x += side
+    end
+    return x
 end

@@ -1,6 +1,8 @@
 export
     EnergyHooke,
-    ForceHooke
+    ForceHooke,
+    fₓ,
+    fpair_cl
 
 
 function EnergyHooke(p_i::Particle{VecType}, p_j::Particle{VecType}, k) where VecType
@@ -26,4 +28,26 @@ function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}, k) where Vec
         force_i = -k * (cutoff - r) * (r_vector / r)
     end
     return force_i
+end
+
+# Examples
+
+function fₓ(x::T,y::T,cutoff,side) where T
+    Δv = wrap.(y - x, side)
+    d = norm(Δv)
+    if d > cutoff
+        fₓ = zero(T)
+    else
+        fₓ = 2*(d - cutoff)*(Δv/d)
+    end
+    return fₓ
+end
+
+function fpair_cl(x,y,i,j,d2,f,box::Box)
+    Δv = y - x
+    d = sqrt(d2)
+    fₓ = 2*(d - box.cutoff)*(Δv/d)
+    f[i] += fₓ
+    f[j] -= fₓ
+    return f
 end

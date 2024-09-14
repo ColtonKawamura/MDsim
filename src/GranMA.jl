@@ -6,6 +6,7 @@ using Distributions
 using Statistics
 using Plots
 using MAT
+using CellListMap
 
 # const k = 100 # need to move this out 
 
