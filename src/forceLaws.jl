@@ -30,6 +30,15 @@ function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}, k) where Vec
     return force_i
 end
 
+function ForceHookeCL(p_i::Particle{VecType}, p_j::Particle{VecType}, k, i , j , d2, f, box::Box) # using CellLists
+    r_vector = p_j.position - p_i.position
+    r = sqrt(d2)
+    force_i = -k * (box.cutoff - r) * (r_vector / r)
+    f[i] += force_i
+    f[j] -= force_i
+    return f
+end
+
 # Examples
 
 function fₓ(x::T,y::T,cutoff,side) where T
