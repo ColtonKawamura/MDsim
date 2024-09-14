@@ -46,8 +46,8 @@ function cellList()
     cl = CellList([p.position for p in particlesFlow], box)
     
     VelInitial = VelocitiesInit(particlesFlow, 1, 1)
-    trajectory = md_verlet_AcousticCL(particlesFlow, particlesLeftWall, particlesRightWall, VelInitial, 1, .00001, 4000, 10, (f_flow, all_particles) -> forces_CL!(k, f_flow, all_particles, ForceHookeCL, box, cl), side)
-    plotTrajectoryAcoustic(trajectory)
+    trajectory_flow, trajectory_left_wall = md_verlet_AcousticCL_2out(particlesFlow, particlesLeftWall, particlesRightWall, VelInitial, 1, .00001, 2000, 10, (f_flow, all_particles) -> forces_CL!(k, f_flow, all_particles, ForceHookeCL, box, cl), side)
+    plotTrajectoryAcoustic(trajectory_flow, trajectory_left_wall)
 end
 
 
