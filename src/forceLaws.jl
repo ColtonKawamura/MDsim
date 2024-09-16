@@ -62,3 +62,13 @@ function fpair_cl(x,y,i,j,d2,f,box::Box)
     f[j] -= fₓ
     return f
 end
+
+function ForceHookeCLDis(particle_list, p_i, p_j, k, i , j , d2, f, box::Box) # using CellLists
+    r_vector = p_j - p_i
+    r = sqrt(d2)
+    cutoff = 0.5 * (particle_list[i].diameter + particle_list[j].diameter)
+    force_i = -k * (cutoff - r) * (r_vector / r)
+    f[i] += force_i
+    f[j] -= force_i
+    return f
+end
