@@ -152,8 +152,8 @@ function md_verletCLosc(particle_list::Vector{Particle{VecType}}, VelInitial::Ve
     a = similar(p)
     f = similar(p)
 
-    A = 0 # added to to feed into sin
-    omega = 20 # added to feed into sin
+    A = .1 # added to to feed into sin
+    omega = 10 # added to feed into sin
 
     trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
     
@@ -166,7 +166,7 @@ function md_verletCLosc(particle_list::Vector{Particle{VecType}}, VelInitial::Ve
         a .= f ./ mass
         p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
         p[leftIndex] .= [Pos2D(p0[i][1] + A * sin(omega * step * dt), p0[i][2]) for i in findall(leftIndex)] # added update positions left wall
-        p[rightIndex] .= [Pos2D(0,0) for i in findall(rightIndex)] # added update positions left wall
+        p[rightIndex] .= [Pos2D(p0[i][1], p0[i][2]) for i in findall(rightIndex)] # added update positions left wall
 
         p .= periodic.(p, side)
         setfield!.(particle_list, :position, p) 
