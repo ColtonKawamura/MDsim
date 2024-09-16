@@ -61,7 +61,7 @@ end
 function cellAcoust()
     mass = 1
     boxX = 1000
-    boxY = 5
+    boxY = 5.6896
     side = boxY
     cutoff = 1.4 # max particle diameter
     box = Box([boxX,boxY],cutoff)
@@ -74,7 +74,7 @@ function cellAcoust()
     cl = CellList([p.position for p in particleList], box)
 
     
-    VelInitial = VelocitiesInit(particleList, 1, 1)
+    VelInitial = VelocitiesInit(particleList, 0, 1)
     trajectory = md_verletCLosc(particleList, VelInitial, 1, 0.001, 500, 10, (f_flow, particleList) -> forces_CL!(k, f_flow, particleList, ForceHookeCL, box, cl), side)
     plotTrajectoryAcoustic(trajectory)
 end
