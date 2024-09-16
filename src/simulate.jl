@@ -152,8 +152,8 @@ function md_verletCLosc(particle_list::Vector{Particle{VecType}}, VelInitial::Ve
     a = similar(p)
     f = similar(p)
 
-    A = .1 # added to to feed into sin
-    omega = 10 # added to feed into sin
+    A = .01 # will move out function
+    omega = 10 # will move out function
 
     trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
     
