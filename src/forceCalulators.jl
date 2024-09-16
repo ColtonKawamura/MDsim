@@ -24,7 +24,7 @@ function forces_CL!(k, force_list::Vector{VecType}, particle_list::Vector{Partic
     fill!(force_list, zero(VecType))
     cl = UpdateCellList!([p.position for p in particle_list], box, cl, parallel=false)
     map_pairwise!(
-        (p_i, p_j, i , j, d2, force_list) -> ForceLaw(particle_list[i], particle_list[j], k, i, j, d2, force_list, box),
+        (p_i, p_j, i , j, d2, force_list) -> ForceLaw(particle_list, p_i, p_j, k, i, j, d2, force_list, box),
         force_list, box, cl, parallel=false
     )
     return force_list
