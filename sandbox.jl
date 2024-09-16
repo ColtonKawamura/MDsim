@@ -68,9 +68,7 @@ function cellAcoust()
     k = 100
     
     particleList = convertInput("2D_N5000_P0.1_Width5_Seed1.mat")
-
-    # cl = CellList([p.position for p in particlesFlow], box)
-    # Combine flow and left wall particles in the cell list
+    
     cl = CellList([p.position for p in particleList], box)
 
     
