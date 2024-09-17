@@ -61,14 +61,14 @@ end
 function cellAcoust()
     mass = 1
     boxX = 1000
-    # boxY = 5.6896
-    boxY = 6.9205
+    boxY = 5.6896
+    # boxY = 6.9205
     side = boxY
     cutoff = 1.4 # max particle diameter
     box = Box([boxX,boxY],cutoff)
     k = 100
     
-    particleList = convertInput("2D_N5000_P0.001_Width5_Seed1.mat")
+    particleList = convertInput("2D_N5000_P0.1_Width5_Seed1.mat")
 
     cl = CellList([p.position for p in particleList], box)
 
