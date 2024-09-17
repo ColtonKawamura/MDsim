@@ -6,7 +6,8 @@ export
     md_verletCL,
     md_verlet_AcousticCL_2out,
     md_verletCLosc,
-    md_verletAc
+    md_verletAc,
+    sim
 
 
 # method 1 without boundaries 
@@ -174,6 +175,43 @@ function md_verletCLosc(particle_list::Vector{Particle{VecType}}, VelInitial::Ve
 
         f[leftIndex] .= [Pos2D(0.0, 0.0) for _ in findall(leftIndex)] # added to zero out forces on left wall
         f[rightIndex] .= [Pos2D(0.0, 0.0) for _ in findall(rightIndex)] # added to zero out forces on left wall
+
+        a_new = f ./ mass
+        v .= v .+ 0.5 .* (a .+ a_new) .* dt
+
+        if mod(step, save_interval) == 0
+            println("Saved trajectory at step: ", step)
+            push!(trajectory, (map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list)))
+        end
+    end
+
+    return trajectory
+end
+
+# simulatte
+function sim(particle_list::Vector{Particle{VecType}}, VelInitial::Vector{VecType}, mass, dt, nsteps, save_interval, forces!; kwargs...) where {VecType}
+    p = getfield.(particle_list, :position) 
+    p0 = copy(p) # added to get initial positions, used for the oscilation
+    v = copy(VelInitial)
+    a = similar(p)
+    f = similar(p)
+
+
+    trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
+    
+    for step in 1:nsteps
+        forces!(f, particle_list)
+
+        a .= f ./ mass
+        p .= p .+ v .* dt .+ 0.5 .* a .* dt^2
+
+        if haskey(kwargs, :side)
+            p .= periodic.(p, side)
+        end
+
+        setfield!.(particle_list, :position, p) 
+        forces!(f, particle_list) 
+
 
         a_new = f ./ mass
         v .= v .+ 0.5 .* (a .+ a_new) .* dt

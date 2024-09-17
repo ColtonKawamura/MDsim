@@ -31,11 +31,17 @@ function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}, k) where Vec
     return force_i
 end
 
-function ForceHookeCL(particle_list, p_i, p_j, k, i , j , d2, f, box::Box) # using CellLists
+function ForceHookeCL(particle_list::Vector{Particle{VecType}}, p_i::VecType, p_j::VecType, k, i, j, d2, f::Vector{VecType}, box::Box) where {VecType}
     r_vector = p_j - p_i
     r = sqrt(d2)
     cutoff = 0.5 * (particle_list[i].diameter + particle_list[j].diameter)
-    force_i = -k * (cutoff - r) * (r_vector / r)
+    
+    if r > cutoff
+        force_i = zero(VecType)  # Ensure we're returning a zero vector of the correct dimension (2D or 3D)
+    else
+        force_i = -k * (cutoff - r) * (r_vector / r)
+    end
+    
     f[i] += force_i
     f[j] -= force_i
     return f
@@ -63,7 +69,7 @@ function fpair_cl(x,y,i,j,d2,f,box::Box)
     return f
 end
 
-function ForceHookeCLDis(particle_list, p_i, p_j, k, i , j , d2, f, box::Box) # using CellLists
+function ForceHookeCLDFix(particle_list, p_i, p_j, k, i , j , d2, f, box::Box) # using CellLists
     r_vector = p_j - p_i
     r = sqrt(d2)
     cutoff = 0.5 * (particle_list[i].diameter + particle_list[j].diameter)
