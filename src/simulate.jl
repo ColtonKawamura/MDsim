@@ -157,8 +157,8 @@ function md_verletCLosc(particle_list::Vector{Particle{VecType}}, VelInitial::Ve
 
     trajectory = [(map(element -> copy(element.position), particle_list), map(element -> element.diameter, particle_list))] 
     
-    leftIndex = [particle.position.x < particle.diameter / 2 for particle in particle_list] # added this to ID leftwall
-    rightIndex = [particle.position.x > 1000 - particle.diameter / 2 for particle in particle_list] # added this to ID leftwall 
+    leftIndex = [particle.position.x <= particle.diameter / 1.9 for particle in particle_list] # added this to ID leftwall
+    rightIndex = [particle.position.x >= 1000 - particle.diameter / 2 for particle in particle_list] # added this to ID leftwall 
     
     for step in 1:nsteps
         forces!(f, particle_list)
