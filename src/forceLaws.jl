@@ -31,7 +31,7 @@ function ForceHooke(p_i::Particle{VecType}, p_j::Particle{VecType}, k) where Vec
     return force_i
 end
 
-function ForceHookeCL(particle_list::Vector{Particle{VecType}}, p_i::VecType, p_j::VecType, k, i, j, d2, f::Vector{VecType}, box::Box) where {VecType}
+function ForceHookeCL(particle_list::Vector{Particle{VecType}}, p_i, p_j, k, i, j, d2, f::Vector{VecType}, box::Box) where {VecType}
     r_vector = p_j - p_i
     r = sqrt(d2)
     cutoff = 0.5 * (particle_list[i].diameter + particle_list[j].diameter)
