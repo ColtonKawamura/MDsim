@@ -19,5 +19,6 @@ include("simulate.jl")
 include("visualize.jl")
 include("boundaries.jl")
 include("matlabConvert.jl")
+include("simBox.jl")
 
 end

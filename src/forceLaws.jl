@@ -1,9 +1,9 @@
 export
     EnergyHooke,
     ForceHooke,
-    fₓ,
-    fpair_cl,
-    ForceHookeCL
+    ForceHookeCL,
+    ForceHookeDamped,
+    foo
 
 
 function EnergyHooke(p_i::Particle{VecType}, p_j::Particle{VecType}, k) where VecType
@@ -46,35 +46,40 @@ function ForceHookeCL(particle_list::Vector{Particle{VecType}}, p_i, p_j, k, i, 
     f[j] -= force_i
     return f
 end
-
-# Examples
-
-function fₓ(x::T,y::T,cutoff,side) where T
-    Δv = wrap.(y - x, side)
-    d = norm(Δv)
-    if d > cutoff
-        fₓ = zero(T)
-    else
-        fₓ = 2*(d - cutoff)*(Δv/d)
-    end
-    return fₓ
-end
-
-function fpair_cl(x,y,i,j,d2,f,box::Box)
-    Δv = y - x
-    d = sqrt(d2)
-    fₓ = 2*(d - box.cutoff)*(Δv/d)
-    f[i] += fₓ
-    f[j] -= fₓ
-    return f
-end
-
-function ForceHookeCLDFix(particle_list, p_i, p_j, k, i , j , d2, f, box::Box) # using CellLists
+function ForceHookeDamped(particle_list::Vector{Particle{VecType}}, p_i, p_j, v_i::VecType, v_j::VecType, k, gamma, i, j, d2, f::Vector{VecType}, box::Box) where {VecType}
     r_vector = p_j - p_i
     r = sqrt(d2)
     cutoff = 0.5 * (particle_list[i].diameter + particle_list[j].diameter)
-    force_i = -k * (cutoff - r) * (r_vector / r)
+    
+    # Hookean spring force
+    if r > cutoff
+        force_spring = zero(VecType)  # No force if beyond cutoff
+    else
+        force_spring = -k * (cutoff - r) * (r_vector / r)  # Spring force
+    end
+    
+    # Relative velocity between particles
+    v_rel = v_j - v_i
+    
+    # Damping force, proportional to relative velocity
+    if r > cutoff
+        force_damping = zero(VecType)  
+    else
+        # force_damping = gamma * StaticArrays.dot(v_rel, r_vector) / r * (r_vector / r)
+        force_damping = gamma * v_rel # not negative because negative is captured by v_rel
+    end
+    
+    # Total force
+    force_i = force_spring + force_damping
+
+    # Apply forces to both particles
     f[i] += force_i
     f[j] -= force_i
+    
     return f
+end
+
+# Create a function that returns the Hooke damped force function with k and gamma set
+function foo(k,gamma, box, cl)
+    return (forceList, particleList, v) -> forcesDamped!(k, gamma, forceList, particleList, v, ForceHookeDamped, box, cl) 
 end

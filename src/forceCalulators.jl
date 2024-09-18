@@ -4,7 +4,8 @@ export
     forces!,
     exforces!,
     forces_cl!,
-    forces_CL!
+    forces_CL!,
+    forcesDamped!
 
 function forces!(force_list::Vector{VecType}, particle_list::Vector{Particle{VecType}}, ForceLaw::F) where {VecType, F}
     fill!(force_list, zero(VecType)) 
@@ -29,28 +30,17 @@ function forces_CL!(k, force_list::Vector{VecType}, particle_list::Vector{Partic
     )
     return force_list
 end
-
-# Examples
-
-function exforces!(f::Vector{T},x::Vector{T},fₓ::F) where {T,F}
-    fill!(f,zero(T))
-    n = length(x)
-    for i in 1:n-1
-        for j in i+1:n
-            fᵢ = fₓ(i,j,x[i],x[j])
-            f[i] += fᵢ 
-            f[j] -= fᵢ
-        end
-    end
-    return f
-end
-
-function forces_cl!(f::Vector{T},x,box::Box,cl::CellList,fpair::F) where {T,F}
-    fill!(f,zero(T))
-    cl = UpdateCellList!(x,box,cl,parallel=false)
+function forcesDamped!(k, gamma, force_list::Vector{VecType}, particle_list::Vector{Particle{VecType}}, velocity_list::Vector{VecType}, ForceLaw::F, box::Box, cl::CellList) where {VecType, F}
+    fill!(force_list, zero(VecType))
+    
+    # Update cell list to ensure particles are mapped correctly
+    cl = UpdateCellList!([p.position for p in particle_list], box, cl, parallel=false)
+    
+    # Apply force calculation for every pair of particles
     map_pairwise!(
-        (x,y,i,j,d2,f) -> fpair(x,y,i,j,d2,f,box),
-        f, box, cl, parallel=false
+        (p_i, p_j, i, j, d2, force_list) -> ForceLaw(particle_list, p_i, p_j, velocity_list[i], velocity_list[j], k, gamma, i, j, d2, force_list, box),
+        force_list, box, cl, parallel=false
     )
-    return f
+    
+    return force_list
 end
