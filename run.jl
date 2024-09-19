@@ -5,7 +5,7 @@ using CellListMap
 using MATLAB
 using MAT
 
-mat_data = matread("2D_N5000_P0.001_Width5_Seed1.mat")
+mat_data = matread("2D_N5000_P0.1_Width5_Seed1.mat")
 boxY = mat_data["Ly"]
 P_target = mat_data["P_target"]
 mass = 1
@@ -14,23 +14,23 @@ boxX = 1000
 side = boxY
 cutoff = 1.4 # max particle diameter
 k = 100
-gamma = 1
+gamma = 5
 dt = .0157
-particleList = convertInput("2D_N5000_P0.001_Width5_Seed1.mat")
-
+particleList = convertInput("2D_N5000_P0.1_Width5_Seed1.mat")
 
 leftWall = [particle.position.x <= particle.diameter / 1.9 for particle in particleList] # added this to ID leftwall
 rightWall = [particle.position.x >= 1000 - particle.diameter / 2 for particle in particleList] # added this to ID leftwall 
 
 A = P_target/100;
-omega = 1
+omega = 10
+
 moveLeftWall = (step, dt) -> A * sin(omega * step * dt)
+
 # tau = 1 / (omega / (2 * pi)) * 2   # Pulse duration (e.g., 10 cycles)
 # sigma = tau / sqrt(2 * log(2))   # Spread of the pulse
 # t_max = 0 * tau  # Start at maximum
 # gaussian_envelope = (t, t_max, sigma) -> exp(-(t - t_max)^2 / (sigma^2))
 # moveLeftWall = (step, dt) -> A * cos(omega * (step * dt - t_max)) * gaussian_envelope(step * dt, t_max, sigma)
-
 
 
 box, cl = makeBox(boxX, boxY, cutoff, particleList) 
@@ -39,14 +39,6 @@ VelInitial = VelocitiesInit(particleList, 0, 1)
 
 trajectory = mdVerlet(particleList, VelInitial, 1, dt, 1000, 10, forceLaw, side, group1=leftWall, group2=rightWall, moveFunc = moveLeftWall)
 
-# plotTrajectoryAcoustic(trajectory)
-targetPos = 1.5
-closestIndex = argmin(abs.([trajectory[1][1][i][1] for i in 1:length(trajectory[1][1])] .- targetPos))
-particleIndex = closestIndex
-posX = map(step -> step[1][particleIndex][1], trajectory)
-t = collect(1:length(posX))
-plot(t,posX)
-
 # trajector[2][1] = xy positions at timestep 2
 # trajectory[3][2] = diameter at timestep 3
 # trajectory[3][1][2] = xy position atiem timestep 3 of particle 2
@@ -54,7 +46,7 @@ plot(t,posX)
 # trajectory[step][xy,diam][particleIndex][x,y]
 
 # Step 1: Define the new target x-positions
-target_positions = [21.5772, .5, 50, 70]  # Updated target x-positions
+target_positions = [5, 10, 20, 30]  # Updated target x-positions
 
 # Step 2: Find the indices of the particles closest to the target positions at step = 1
 initial_x_positions = [trajectory[1][1][i][1] for i in 1:length(trajectory[1][1])]
@@ -104,3 +96,4 @@ for i = 1:length(x_all)
     hold off;
 end
 """
+plotTrajectoryAcoustic(trajectory)
