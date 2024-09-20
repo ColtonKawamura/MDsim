@@ -3,7 +3,7 @@ export
     ForceHooke,
     ForceHookeCL,
     ForceHookeDamped,
-    foo
+    forceHookeDamp
 
 
 function EnergyHooke(p_i::Particle{VecType}, p_j::Particle{VecType}, k) where VecType
@@ -80,6 +80,6 @@ function ForceHookeDamped(particle_list::Vector{Particle{VecType}}, p_i, p_j, v_
 end
 
 # Create a function that returns the Hooke damped force function with k and gamma set
-function foo(k,gamma, box, cl)
+function forceHookeDamp(k,gamma, box, cl)
     return (forceList, particleList, v) -> forcesDamped!(k, gamma, forceList, particleList, v, ForceHookeDamped, box, cl) 
 end
