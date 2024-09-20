@@ -23,14 +23,7 @@ rightWall = [particle.position.x >= 1000 - particle.diameter / 2 for particle in
 
 A = P_target/100;
 omega = 10
-
 moveLeftWall = (step, dt) -> A * sin(omega * step * dt)
-
-# tau = 1 / (omega / (2 * pi)) * 2   # Pulse duration (e.g., 10 cycles)
-# sigma = tau / sqrt(2 * log(2))   # Spread of the pulse
-# t_max = 0 * tau  # Start at maximum
-# gaussian_envelope = (t, t_max, sigma) -> exp(-(t - t_max)^2 / (sigma^2))
-# moveLeftWall = (step, dt) -> A * cos(omega * (step * dt - t_max)) * gaussian_envelope(step * dt, t_max, sigma)
 
 
 box, cl = makeBox(boxX, boxY, cutoff, particleList) 
@@ -40,12 +33,7 @@ VelInitial = VelocitiesInit(particleList, 0, 1)
 trajectory = mdVerlet(particleList, VelInitial, 1, dt, 1000, 10, forceLaw, side, group1=leftWall, group2=rightWall, moveFunc = moveLeftWall)
 
 
-#---------------------------------------------------------------------------------------------------
-# trajector[2][1] = xy positions at timestep 2
-# trajectory[3][2] = diameter at timestep 3
-# trajectory[3][1][2] = xy position atiem timestep 3 of particle 2
-# trajectory[3][1][2][1] = x position atiem timestep 3 of particle 2
-# trajectory[step][xy,diam][particleIndex][x,y]
+#--------------------------------------------------------------------------------------------------
 
 # Step 1: Define the new target x-positions
 target_positions = [5, 10, 20, 30]  # Updated target x-positions
