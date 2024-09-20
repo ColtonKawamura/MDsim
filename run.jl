@@ -39,6 +39,8 @@ VelInitial = VelocitiesInit(particleList, 0, 1)
 
 trajectory = mdVerlet(particleList, VelInitial, 1, dt, 1000, 10, forceLaw, side, group1=leftWall, group2=rightWall, moveFunc = moveLeftWall)
 
+
+#---------------------------------------------------------------------------------------------------
 # trajector[2][1] = xy positions at timestep 2
 # trajectory[3][2] = diameter at timestep 3
 # trajectory[3][1][2] = xy position atiem timestep 3 of particle 2
